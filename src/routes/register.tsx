@@ -229,7 +229,7 @@ function RegisterPage() {
                   <div className="mx-auto size-12 animate-spin rounded-full border-4 border-success-soft border-t-success" />
                   <p className="mt-4 text-[16px] font-semibold text-foreground">Inasubiri malipo...</p>
                   <p className="mt-1 text-[13px] text-muted-foreground">
-                    Thibitisha USSD push kwenye {payPhone}
+                    {statusNote || `Thibitisha USSD push kwenye ${payPhone}`}
                   </p>
                 </div>
               )}
