@@ -148,19 +148,48 @@ function RegisterPage() {
           </div>
 
           <div>
-            <label htmlFor="region" className="text-[14px] font-semibold text-foreground">
-              Mkoa
+            <label htmlFor="username" className="text-[14px] font-semibold text-foreground">
+              Username
+            </label>
+            <input
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Mfano: asha254"
+              maxLength={24}
+              className="mt-1.5 w-full rounded-xl border border-border bg-background px-4 py-3 text-[15px] outline-none focus:border-primary"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="text-[14px] font-semibold text-foreground">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••"
+              maxLength={40}
+              className="mt-1.5 w-full rounded-xl border border-border bg-background px-4 py-3 text-[15px] outline-none focus:border-primary"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="country" className="text-[14px] font-semibold text-foreground">
+              Nchi
             </label>
             <select
-              id="region"
-              value={region}
-              onChange={(e) => setRegion(e.target.value)}
+              id="country"
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
               className="mt-1.5 w-full rounded-xl border border-border bg-background px-4 py-3 text-[15px] outline-none focus:border-primary"
             >
-              <option value="">Chagua mkoa</option>
-              {["Dar es Salaam", "Arusha", "Mwanza", "Dodoma", "Mbeya", "Tanga", "Morogoro", "Zanzibar", "Nyingine"].map((r) => (
-                <option key={r} value={r}>
-                  {r}
+              <option value="">Chagua nchi</option>
+              {countries.map((c) => (
+                <option key={c} value={c}>
+                  {c}
                 </option>
               ))}
             </select>
@@ -174,9 +203,16 @@ function RegisterPage() {
           >
             SIGN UP
           </button>
+          <Link
+            to="/signin"
+            className="block w-full rounded-xl border-2 border-primary py-3 text-center text-[16px] font-bold text-primary"
+          >
+            SIGN IN
+          </Link>
           <Link to="/" className="block text-center text-[14px] underline text-muted-foreground">
             Rudi nyumbani
           </Link>
+
         </form>
       </main>
 
