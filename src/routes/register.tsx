@@ -1,7 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "@/components/SiteHeader";
 import { ACTIVATION_FEE, fmt, loadAccount, saveAccount } from "@/lib/data";
+import { checkPaymentStatus, createPaymentOrder } from "@/lib/mobilipa.functions";
 
 type Search = { chat?: string | undefined };
 
@@ -31,6 +33,9 @@ function RegisterPage() {
   const [phone, setPhone] = useState("");
   const [payPhone, setPayPhone] = useState("");
   const [error, setError] = useState("");
+  const [statusNote, setStatusNote] = useState("");
+  const createOrder = useServerFn(createPaymentOrder);
+  const checkStatus = useServerFn(checkPaymentStatus);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,25 +47,57 @@ function RegisterPage() {
     setStage("pay");
   };
 
-  const pay = () => {
+  const finish = () => {
+    const acc = loadAccount();
+    saveAccount({
+      ...acc,
+      fullName: fullName.trim(),
+      phone: phone.trim(),
+      region: region.trim(),
+      activated: true,
+    });
+    setStage("done");
+    setTimeout(() => {
+      if (chat) navigate({ to: "/chat/$slug", params: { slug: chat } });
+      else navigate({ to: "/dashboard" });
+    }, 1400);
+  };
+
+  const pay = async () => {
     if (!/^0[67]\d{8}$/.test(payPhone.trim())) return setError("Namba ya simu si sahihi.");
     setError("");
     setStage("processing");
-    setTimeout(() => {
-      const acc = loadAccount();
-      saveAccount({
-        ...acc,
-        fullName: fullName.trim(),
-        phone: phone.trim(),
-        region: region.trim(),
-        activated: true,
+    setStatusNote("Tunatuma push ya malipo...");
+
+    try {
+      const order = await createOrder({
+        data: { name: fullName.trim(), phone: payPhone.trim(), amount: ACTIVATION_FEE },
       });
-      setStage("done");
-      setTimeout(() => {
-        if (chat) navigate({ to: "/chat/$slug", params: { slug: chat } });
-        else navigate({ to: "/dashboard" });
-      }, 1400);
-    }, 2600);
+
+      if (!order.ok || !order.orderId) {
+        setStage("pay");
+        setError(order.ok ? "Imeshindikana kuanzisha malipo." : order.message);
+        return;
+      }
+
+      setStatusNote(`Thibitisha USSD push kwenye ${payPhone}`);
+
+      for (let i = 0; i < 60; i++) {
+        await new Promise((r) => setTimeout(r, 5000));
+        const { status } = await checkStatus({ data: { orderId: order.orderId } });
+        if (status === "COMPLETED" || status === "SUCCESS" || status === "PAID") return finish();
+        if (status === "FAILED" || status === "CANCELLED" || status === "REJECTED") {
+          setStage("pay");
+          setError("Malipo hayakufanikiwa. Jaribu tena.");
+          return;
+        }
+      }
+      setStage("pay");
+      setError("Muda wa kusubiri malipo umeisha. Jaribu tena.");
+    } catch {
+      setStage("pay");
+      setError("Hitilafu ya mtandao. Jaribu tena.");
+    }
   };
 
   return (
@@ -192,7 +229,7 @@ function RegisterPage() {
                   <div className="mx-auto size-12 animate-spin rounded-full border-4 border-success-soft border-t-success" />
                   <p className="mt-4 text-[16px] font-semibold text-foreground">Inasubiri malipo...</p>
                   <p className="mt-1 text-[13px] text-muted-foreground">
-                    Thibitisha USSD push kwenye {payPhone}
+                    {statusNote || `Thibitisha USSD push kwenye ${payPhone}`}
                   </p>
                 </div>
               )}
