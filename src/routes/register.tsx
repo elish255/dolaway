@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { SiteHeader } from "@/components/SiteHeader";
-import { ACTIVATION_FEE, fmt, loadAccount, saveAccount } from "@/lib/data";
+import { ACTIVATION_FEE, countries, fmt, loadAccount, saveAccount, usernameTaken } from "@/lib/data";
 import { checkPaymentStatus, createPaymentOrder } from "@/lib/mobilipa.functions";
 
 type Search = { chat?: string | undefined };
@@ -29,7 +29,9 @@ function RegisterPage() {
   const navigate = useNavigate();
   const [stage, setStage] = useState<Stage>("form");
   const [fullName, setFullName] = useState("");
-  const [region, setRegion] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [country, setCountry] = useState("");
   const [phone, setPhone] = useState("");
   const [payPhone, setPayPhone] = useState("");
   const [error, setError] = useState("");
@@ -40,8 +42,11 @@ function RegisterPage() {
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (fullName.trim().length < 3) return setError("Weka jina lako kamili.");
+    if (username.trim().length < 3) return setError("Weka username (angalau herufi 3).");
+    if (usernameTaken(username)) return setError("Username hii tayari imetumika.");
+    if (password.length < 4) return setError("Password iwe angalau herufi 4.");
     if (!/^0[67]\d{8}$/.test(phone.trim())) return setError("Namba ya simu si sahihi (mfano 0712345678).");
-    if (!region.trim()) return setError("Chagua mkoa wako.");
+    if (!country.trim()) return setError("Chagua nchi yako.");
     setError("");
     setPayPhone(phone.trim());
     setStage("pay");
@@ -52,8 +57,10 @@ function RegisterPage() {
     saveAccount({
       ...acc,
       fullName: fullName.trim(),
+      username: username.trim(),
+      password,
       phone: phone.trim(),
-      region: region.trim(),
+      country: country.trim(),
       activated: true,
     });
     setStage("done");
