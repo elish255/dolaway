@@ -124,6 +124,104 @@ function Dashboard() {
           </>
         )}
       </main>
+
+      {wStage !== "closed" && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/50 px-3 py-6 sm:items-center">
+          <div className="w-full max-w-md overflow-hidden rounded-3xl bg-gradient-to-r from-success to-gold">
+            <div className="px-6 pb-4 pt-6">
+              <p className="text-[12px] font-bold tracking-[0.3em] text-success-foreground">WITHDRAWAL</p>
+            </div>
+            <div className="rounded-3xl bg-card px-5 py-6">
+              {wStage === "form" && (
+                <>
+                  <div className="rounded-2xl bg-success-soft py-4 text-center">
+                    <p className="text-[13px] font-bold tracking-[0.15em] text-success/80">SALIO LINALOPATIKANA</p>
+                    <p className="mt-1 text-[30px] font-black leading-none text-success">
+                      {fmt(account?.balance ?? 0)} <span className="text-[18px] align-middle">TZS</span>
+                    </p>
+                  </div>
+
+                  <label htmlFor="wamount" className="mt-5 block text-[16px] font-semibold text-foreground">
+                    Kiasi (TZS)
+                  </label>
+                  <div className="mt-2 flex items-center gap-2 rounded-full border-2 border-success px-4 py-3">
+                    <span aria-hidden>💰</span>
+                    <input
+                      id="wamount"
+                      inputMode="numeric"
+                      maxLength={9}
+                      value={wAmount}
+                      onChange={(e) => setWAmount(e.target.value)}
+                      placeholder="50000"
+                      className="w-full bg-transparent text-[17px] outline-none"
+                    />
+                  </div>
+
+                  <label htmlFor="wphone" className="mt-4 block text-[16px] font-semibold text-foreground">
+                    Namba ya simu
+                  </label>
+                  <div className="mt-2 flex items-center gap-2 rounded-full border-2 border-success px-4 py-3">
+                    <span aria-hidden>📱</span>
+                    <input
+                      id="wphone"
+                      inputMode="numeric"
+                      maxLength={10}
+                      value={wPhone}
+                      onChange={(e) => setWPhone(e.target.value)}
+                      placeholder="0712345678"
+                      className="w-full bg-transparent text-[17px] outline-none"
+                    />
+                  </div>
+
+                  <p className="mt-2 text-[13px] text-muted-foreground">Kiwango cha chini cha kutoa ni TZS 50,000.</p>
+                  {wError && <p className="mt-2 text-[13px] font-semibold text-destructive">{wError}</p>}
+
+                  <button
+                    onClick={submitWithdraw}
+                    className="mt-5 w-full rounded-full bg-success py-4 text-[18px] font-bold tracking-wide text-success-foreground"
+                  >
+                    WITHDRAWAL
+                  </button>
+                  <button
+                    onClick={() => setWStage("closed")}
+                    className="mx-auto mt-5 block text-[15px] underline text-foreground"
+                  >
+                    Ghairi
+                  </button>
+                </>
+              )}
+
+              {wStage === "processing" && (
+                <div className="py-10 text-center">
+                  <div className="mx-auto size-12 animate-spin rounded-full border-4 border-success-soft border-t-success" />
+                  <p className="mt-4 text-[16px] font-semibold text-foreground">Inatuma pesa...</p>
+                  <p className="mt-1 text-[13px] text-muted-foreground">Tafadhali subiri kidogo</p>
+                </div>
+              )}
+
+              {wStage === "sent" && (
+                <div className="py-10 text-center">
+                  <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-success text-2xl text-success-foreground">
+                    ✓
+                  </div>
+                  <p className="mt-4 text-[18px] font-bold text-success">
+                    Withdrawal ya TZS {fmt(wSent.amount)} imetumwa!
+                  </p>
+                  <p className="mt-1 text-[14px] text-muted-foreground">
+                    Pesa imetumwa kwenye namba ya simu {wSent.phone}.
+                  </p>
+                  <button
+                    onClick={() => setWStage("closed")}
+                    className="mt-5 w-full rounded-full bg-success py-3.5 text-[16px] font-bold text-success-foreground"
+                  >
+                    SAWA
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
