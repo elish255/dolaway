@@ -26,19 +26,38 @@ export const ACTIVATION_FEE = 14500;
 
 export type Account = {
   fullName: string;
+  username: string;
+  password: string;
   phone: string;
-  region: string;
+  country: string;
   activated: boolean;
   balance: number;
   completed: string[];
 };
 
 const KEY = "dolaway_account";
+const USERS_KEY = "dolaway_users";
+
+export const countries = [
+  "Tanzania",
+  "Kenya",
+  "Uganda",
+  "Rwanda",
+  "Burundi",
+  "DR Congo",
+  "Zambia",
+  "Malawi",
+  "Msumbiji",
+  "Afrika Kusini",
+  "Nyingine",
+];
 
 export const emptyAccount: Account = {
   fullName: "",
+  username: "",
+  password: "",
   phone: "",
-  region: "",
+  country: "",
   activated: false,
   balance: 0,
   completed: [],
@@ -54,10 +73,43 @@ export function loadAccount(): Account {
   }
 }
 
+function loadUsers(): Record<string, Account> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(USERS_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, Account>) : {};
+  } catch {
+    return {};
+  }
+}
+
 export function saveAccount(account: Account) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(KEY, JSON.stringify(account));
+  if (account.username) {
+    const users = loadUsers();
+    users[account.username.trim().toLowerCase()] = account;
+    window.localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  }
+  window.dispatchEvent(new Event("dolaway-account"));
+}
+
+export function usernameTaken(username: string) {
+  return Boolean(loadUsers()[username.trim().toLowerCase()]);
+}
+
+export function signIn(username: string, password: string): Account | null {
+  const user = loadUsers()[username.trim().toLowerCase()];
+  if (!user || user.password !== password) return null;
+  saveAccount(user);
+  return user;
+}
+
+export function signOut() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(KEY);
   window.dispatchEvent(new Event("dolaway-account"));
 }
 
 export const fmt = (n: number) => n.toLocaleString("en-US");
+
