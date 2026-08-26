@@ -3,7 +3,7 @@ import { useState } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { ACTIVATION_FEE, fmt, loadAccount, saveAccount } from "@/lib/data";
 
-type Search = { chat?: string };
+type Search = { chat?: string | undefined };
 
 export const Route = createFileRoute("/register")({
   validateSearch: (search: Record<string, unknown>): Search => ({
