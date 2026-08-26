@@ -19,12 +19,12 @@ export const Route = createFileRoute("/register")({
       { property: "og:description", content: "Jaza fomu ya usajili kisha lipa ada ya uanzishaji ili kuanza kulipwa." },
     ],
   }),
-  component: RegisterPage,
+  component: RegistrationPage,
 });
 
 type Stage = "form" | "pay" | "processing" | "done";
 
-function RegisterPage() {
+function RegistrationPage() {
   const { chat } = Route.useSearch();
   const navigate = useNavigate();
   const [stage, setStage] = useState<Stage>("form");
