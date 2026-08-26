@@ -58,8 +58,8 @@ export const checkPaymentStatus = createServerFn({ method: "POST" })
     const res = await fetch(`${BASE}/v1/payment/status?order_id=${encodeURIComponent(data.orderId)}`, {
       headers: { "X-API-KEY": apiKey },
     });
-    const json = (await res.json().catch(() => ({}))) as Record<string, any>;
-    const tx = json?.data ?? json?.transaction ?? {};
-    const status = String(tx.payment_status ?? tx.status ?? json?.status ?? "PENDING").toUpperCase();
+    const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    const tx = (json["data"] ?? json["transaction"] ?? {}) as Record<string, unknown>;
+    const status = String(tx["payment_status"] ?? tx["status"] ?? json["status"] ?? "PENDING").toUpperCase();
     return { status };
   });
