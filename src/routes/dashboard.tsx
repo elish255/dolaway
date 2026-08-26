@@ -15,8 +15,15 @@ export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
 });
 
+type WStage = "closed" | "form" | "processing" | "sent";
+
 function Dashboard() {
   const [account, setAccount] = useState<Account | null>(null);
+  const [wStage, setWStage] = useState<WStage>("closed");
+  const [wAmount, setWAmount] = useState("");
+  const [wPhone, setWPhone] = useState("");
+  const [wError, setWError] = useState("");
+  const [wSent, setWSent] = useState({ amount: 0, phone: "" });
 
   useEffect(() => {
     const sync = () => setAccount(loadAccount());
@@ -26,6 +33,26 @@ function Dashboard() {
   }, []);
 
   const available = chatters.filter((c) => !(account?.completed ?? []).includes(c.slug));
+
+  const openWithdraw = () => {
+    setWError("");
+    setWAmount("");
+    setWPhone(account?.phone ?? "");
+    setWStage("form");
+  };
+
+  const submitWithdraw = () => {
+    const amount = Number(wAmount.replace(/\D/g, ""));
+    if (!amount || amount < 50000) return setWError("Kiasi cha chini ni TZS 50,000.");
+    if (amount > (account?.balance ?? 0)) return setWError("Salio lako halitoshi.");
+    if (!/^0[67]\d{8}$/.test(wPhone.trim())) return setWError("Namba ya simu si sahihi (mfano 0712345678).");
+    setWError("");
+    setWStage("processing");
+    setTimeout(() => {
+      setWSent({ amount, phone: wPhone.trim() });
+      setWStage("sent");
+    }, 3000);
+  };
 
   return (
     <div className="min-h-screen bg-background pb-16">
@@ -39,6 +66,7 @@ function Dashboard() {
             {account?.activated ? `Karibu ${account.fullName || "mtumiaji"} • akaunti imewashwa ✓` : "Akaunti bado haijawashwa"}
           </p>
           <button
+            onClick={openWithdraw}
             disabled={(account?.balance ?? 0) < 50000}
             className="mt-4 w-full rounded-full bg-primary py-3 text-[15px] font-bold text-primary-foreground disabled:opacity-50"
           >
