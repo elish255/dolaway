@@ -269,7 +269,7 @@ function RegisterPage() {
 
               {stage === "processing" && (
                 <div className="py-10 text-center">
-                  <div className="mx-auto size-12 animate-spin rounded-full border-4 border-primary-soft border-t-success" />
+                  <div className="mx-auto size-12 animate-spin rounded-full border-4 border-muted border-t-primary" />
                   <p className="mt-4 text-[16px] font-semibold text-foreground">Inasubiri malipo...</p>
                   <p className="mt-1 text-[13px] text-muted-foreground">
                     {statusNote || `Thibitisha USSD push kwenye ${payPhone}`}
