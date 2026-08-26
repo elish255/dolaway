@@ -218,16 +218,16 @@ function RegisterPage() {
 
       {stage !== "form" && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/50 px-3 py-6 sm:items-center">
-          <div className="w-full max-w-md overflow-hidden rounded-3xl bg-gradient-to-r from-success to-gold">
+          <div className="w-full max-w-md overflow-hidden rounded-3xl bg-gradient-to-r from-brand-deep to-brand">
             <div className="px-6 pb-4 pt-6">
-              <p className="text-[12px] font-bold tracking-[0.3em] text-success-foreground">HATUA YA 2</p>
+              <p className="text-[12px] font-bold tracking-[0.3em] text-brand-foreground">HATUA YA 2</p>
             </div>
             <div className="rounded-3xl bg-card px-5 py-6">
               {stage === "pay" && (
                 <>
-                  <div className="rounded-2xl bg-success-soft py-5 text-center">
-                    <p className="text-[13px] font-bold tracking-[0.15em] text-success/80">KIASI CHA KULIPA</p>
-                    <p className="mt-1 text-[40px] font-black leading-none text-success">
+                  <div className="rounded-2xl bg-muted py-5 text-center">
+                    <p className="text-[13px] font-bold tracking-[0.15em] text-brand-deep/70">KIASI CHA KULIPA</p>
+                    <p className="mt-1 text-[40px] font-black leading-none text-gold">
                       {fmt(ACTIVATION_FEE)} <span className="text-[20px] align-middle">TZS</span>
                     </p>
                   </div>
@@ -235,7 +235,7 @@ function RegisterPage() {
                   <label htmlFor="payphone" className="mt-5 block text-[16px] font-semibold text-foreground">
                     Namba ya simu
                   </label>
-                  <div className="mt-2 flex items-center gap-2 rounded-full border-2 border-success px-4 py-3">
+                  <div className="mt-2 flex items-center gap-2 rounded-full border-2 border-primary px-4 py-3">
                     <span aria-hidden>📱</span>
                     <input
                       id="payphone"
@@ -254,7 +254,7 @@ function RegisterPage() {
 
                   <button
                     onClick={pay}
-                    className="mt-5 w-full rounded-full bg-success py-4 text-[18px] font-bold tracking-wide text-success-foreground"
+                    className="mt-5 w-full rounded-full bg-primary py-4 text-[18px] font-bold tracking-wide text-primary-foreground"
                   >
                     LIPA SASA
                   </button>
@@ -269,7 +269,7 @@ function RegisterPage() {
 
               {stage === "processing" && (
                 <div className="py-10 text-center">
-                  <div className="mx-auto size-12 animate-spin rounded-full border-4 border-success-soft border-t-success" />
+                  <div className="mx-auto size-12 animate-spin rounded-full border-4 border-primary-soft border-t-success" />
                   <p className="mt-4 text-[16px] font-semibold text-foreground">Inasubiri malipo...</p>
                   <p className="mt-1 text-[13px] text-muted-foreground">
                     {statusNote || `Thibitisha USSD push kwenye ${payPhone}`}
@@ -279,10 +279,10 @@ function RegisterPage() {
 
               {stage === "done" && (
                 <div className="py-10 text-center">
-                  <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-success text-2xl text-success-foreground">
+                  <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-primary text-2xl text-primary-foreground">
                     ✓
                   </div>
-                  <p className="mt-4 text-[18px] font-bold text-success">Malipo yamepokelewa!</p>
+                  <p className="mt-4 text-[18px] font-bold text-gold">Malipo yamepokelewa!</p>
                   <p className="mt-1 text-[14px] text-muted-foreground">Akaunti yako imewashwa. Tunakupeleka kwenye dashboard...</p>
                 </div>
               )}
