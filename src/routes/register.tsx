@@ -1,295 +1,263 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useState } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
-import { ACTIVATION_FEE, countries, fmt, loadAccount, saveAccount, usernameTaken } from "@/lib/data";
-import { checkPaymentStatus, createPaymentOrder } from "@/lib/mobilipa.functions";
+import { countries, loadAccount, saveAccount, usernameTaken } from "@/lib/data";
 
 type Search = { chat?: string | undefined };
 
 export const Route = createFileRoute("/register")({
   validateSearch: (search: Record<string, unknown>): Search => ({
-    chat: typeof search["chat"] === "string" ? (search["chat"] as string) : undefined,
+    chat: typeof search["chat"] === "string" ? search["chat"] : undefined,
   }),
   head: () => ({
     meta: [
       { title: "Jisajili | DolaWay" },
-      { name: "description", content: "Jaza fomu ya usajili wa DolaWay kisha lipa ada ya uanzishaji ili kuanza kuchat na kulipwa." },
+      {
+        name: "description",
+        content: "Fungua akaunti ya DolaWay, hifadhi taarifa zako na endelea moja kwa moja kwenye malipo.",
+      },
       { property: "og:title", content: "Jisajili | DolaWay" },
-      { property: "og:description", content: "Jaza fomu ya usajili kisha lipa ada ya uanzishaji ili kuanza kulipwa." },
+      { property: "og:description", content: "Fungua akaunti ya DolaWay na lipia activation ili kuanza kuchat na kulipwa." },
     ],
   }),
   component: RegistrationPage,
 });
 
-type Stage = "form" | "pay" | "processing" | "done";
-
 function RegistrationPage() {
   const { chat } = Route.useSearch();
   const navigate = useNavigate();
-  const [stage, setStage] = useState<Stage>("form");
-  const [fullName, setFullName] = useState("");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [country, setCountry] = useState("");
-  const [phone, setPhone] = useState("");
-  const [payPhone, setPayPhone] = useState("");
+  const [form, setForm] = useState({
+    name: "",
+    username: "",
+    phone: "",
+    email: "",
+    country: "Tanzania",
+    password: "",
+    confirm: "",
+  });
+  const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
-  const [statusNote, setStatusNote] = useState("");
-  const createOrder = useServerFn(createPaymentOrder);
-  const checkStatus = useServerFn(checkPaymentStatus);
+
+  useEffect(() => {
+    const account = loadAccount();
+    if (account.username && !account.activated) {
+      setForm({
+        name: account.fullName,
+        username: account.username,
+        phone: account.phone,
+        email: account.email,
+        country: account.country || "Tanzania",
+        password: account.password,
+        confirm: account.password,
+      });
+    }
+  }, []);
+
+  const set = (key: keyof typeof form, value: string) =>
+    setForm((current) => ({ ...current, [key]: value }));
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (fullName.trim().length < 3) return setError("Weka jina lako kamili.");
-    if (username.trim().length < 3) return setError("Weka username (angalau herufi 3).");
-    if (usernameTaken(username)) return setError("Username hii tayari imetumika.");
-    if (password.length < 4) return setError("Password iwe angalau herufi 4.");
-    if (!/^0[67]\d{8}$/.test(phone.trim())) return setError("Namba ya simu si sahihi (mfano 0712345678).");
-    if (!country.trim()) return setError("Chagua nchi yako.");
     setError("");
-    setPayPhone(phone.trim());
-    setStage("pay");
-  };
 
-  const finish = () => {
-    const acc = loadAccount();
-    saveAccount({
-      ...acc,
-      fullName: fullName.trim(),
-      username: username.trim(),
-      password,
-      phone: phone.trim(),
-      country: country.trim(),
-      activated: true,
-    });
-    setStage("done");
-    setTimeout(() => {
-      if (chat) navigate({ to: "/chat/$slug", params: { slug: chat } });
-      else navigate({ to: "/dashboard" });
-    }, 1400);
-  };
-
-  const pay = async () => {
-    if (!/^0[67]\d{8}$/.test(payPhone.trim())) return setError("Namba ya simu si sahihi.");
-    setError("");
-    setStage("processing");
-    setStatusNote("Tunatuma push ya malipo...");
-
-    try {
-      const order = await createOrder({
-        data: { name: fullName.trim(), phone: payPhone.trim(), amount: ACTIVATION_FEE },
-      });
-
-      if (!order.ok || !order.orderId) {
-        setStage("pay");
-        setError(order.ok ? "Imeshindikana kuanzisha malipo." : order.message);
-        return;
-      }
-
-      setStatusNote(`Thibitisha USSD push kwenye ${payPhone}`);
-
-      for (let i = 0; i < 60; i++) {
-        await new Promise((r) => setTimeout(r, 5000));
-        const { status } = await checkStatus({ data: { orderId: order.orderId } });
-        if (status === "COMPLETED" || status === "SUCCESS" || status === "PAID") return finish();
-        if (status === "FAILED" || status === "CANCELLED" || status === "REJECTED") {
-          setStage("pay");
-          setError("Malipo hayakufanikiwa. Jaribu tena.");
-          return;
-        }
-      }
-      setStage("pay");
-      setError("Muda wa kusubiri malipo umeisha. Jaribu tena.");
-    } catch {
-      setStage("pay");
-      setError("Hitilafu ya mtandao. Jaribu tena.");
+    if (form.name.trim().length < 3) return setError("Weka jina lako kamili.");
+    if (form.username.trim().length < 3) return setError("Weka username (angalau herufi 3).");
+    if (!/^[a-zA-Z0-9_]+$/.test(form.username.trim())) {
+      return setError("Username itumie herufi, namba au underscore pekee.");
     }
+    if (usernameTaken(form.username) && loadAccount().username.trim().toLowerCase() !== form.username.trim().toLowerCase()) {
+      return setError("Username hii tayari imetumika.");
+    }
+    if (!/^0[67]\d{8}$/.test(form.phone.trim())) {
+      return setError("Namba ya simu si sahihi (mfano 0712345678).");
+    }
+    if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      return setError("Weka email sahihi.");
+    }
+    if (form.password.length < 4) return setError("Password iwe angalau herufi 4.");
+    if (form.password !== form.confirm) return setError("Password hazifanani.");
+    if (!form.country.trim()) return setError("Chagua nchi yako.");
+
+    saveAccount({
+      ...loadAccount(),
+      fullName: form.name.trim(),
+      username: form.username.trim(),
+      password: form.password,
+      phone: form.phone.trim(),
+      email: form.email.trim(),
+      country: form.country.trim(),
+      activated: false,
+    });
+
+    navigate({
+      to: "/payment",
+      search: chat ? { chat } : {},
+    });
   };
 
   return (
     <div className="min-h-screen bg-background pb-16">
       <SiteHeader />
 
-      <main className="mx-auto max-w-lg px-3 py-5">
-        <div className="rounded-2xl bg-brand-deep px-4 py-5 text-center">
-          <p className="text-[11px] font-bold tracking-[0.25em] text-brand-foreground/70">HATUA YA 1</p>
-          <h1 className="mt-1 text-[22px] font-black text-gold">Jisajili Ili Kuanza Kulipwa</h1>
-        </div>
+      <main className="mx-auto max-w-5xl px-3 py-5">
+        <div className="card-soft overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-12">
+            <aside className="hidden bg-brand-deep p-8 text-brand-foreground lg:col-span-5 lg:flex lg:flex-col">
+              <p className="text-[11px] font-bold tracking-[0.25em] text-brand-foreground/70">DOLAWAY</p>
+              <h1 className="mt-3 text-3xl font-black leading-tight">
+                Connect, Learn, Earn.
+              </h1>
+              <p className="mt-4 text-sm leading-6 text-brand-foreground/75">
+                Fungua akaunti yako, hifadhi taarifa zako kwenye simu yako, kisha lipia activation
+                kwa Mobilipa ili kuanza kuchat na kulipwa.
+              </p>
+              <div className="mt-8 space-y-3 text-sm">
+                {["Usajili wa haraka", "Taarifa zinahifadhiwa Local Storage", "Mobilipa USSD Push", "Dashboard baada ya malipo"].map(
+                  (item) => (
+                    <div key={item} className="flex items-center gap-3">
+                      <span className="flex size-7 items-center justify-center rounded-full bg-primary text-primary-foreground">✓</span>
+                      <span>{item}</span>
+                    </div>
+                  ),
+                )}
+              </div>
+              <p className="mt-auto pt-10 text-xs text-brand-foreground/50">© DolaWay</p>
+            </aside>
 
-        <form onSubmit={submit} className="card-soft mt-4 space-y-4 p-4">
-          <div>
-            <label htmlFor="name" className="text-[14px] font-semibold text-foreground">
-              Jina kamili
-            </label>
-            <input
-              id="name"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Mfano: Asha Juma"
-              maxLength={60}
-              className="mt-1.5 w-full rounded-xl border border-border bg-background px-4 py-3 text-[15px] outline-none focus:border-primary"
-            />
-          </div>
+            <section className="p-5 sm:p-8 lg:col-span-7">
+              <div className="mb-6 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-bold tracking-[0.25em] text-muted-foreground">HATUA YA 1</p>
+                  <h2 className="mt-1 text-2xl font-black text-foreground">Create Account</h2>
+                </div>
+                <span className="rounded-full bg-muted px-3 py-1.5 text-[11px] font-bold text-muted-foreground">
+                  Jisajili
+                </span>
+              </div>
 
-          <div>
-            <label htmlFor="phone" className="text-[14px] font-semibold text-foreground">
-              Namba ya simu
-            </label>
-            <input
-              id="phone"
-              inputMode="numeric"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="0712345678"
-              maxLength={10}
-              className="mt-1.5 w-full rounded-xl border border-border bg-background px-4 py-3 text-[15px] outline-none focus:border-primary"
-            />
-          </div>
+              {error && (
+                <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive">
+                  {error}
+                </div>
+              )}
 
-          <div>
-            <label htmlFor="username" className="text-[14px] font-semibold text-foreground">
-              Username
-            </label>
-            <input
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Mfano: asha254"
-              maxLength={24}
-              className="mt-1.5 w-full rounded-xl border border-border bg-background px-4 py-3 text-[15px] outline-none focus:border-primary"
-            />
-          </div>
+              <form onSubmit={submit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Field label="Full Name">
+                  <input
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-[15px] outline-none focus:border-primary"
+                    placeholder="John Alex"
+                    required
+                    value={form.name}
+                    onChange={(e) => set("name", e.target.value)}
+                  />
+                </Field>
 
-          <div>
-            <label htmlFor="password" className="text-[14px] font-semibold text-foreground">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••"
-              maxLength={40}
-              className="mt-1.5 w-full rounded-xl border border-border bg-background px-4 py-3 text-[15px] outline-none focus:border-primary"
-            />
-          </div>
+                <Field label="Username">
+                  <input
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-[15px] outline-none focus:border-primary"
+                    placeholder="user_01"
+                    required
+                    maxLength={30}
+                    value={form.username}
+                    onChange={(e) => set("username", e.target.value.replace(/[^a-zA-Z0-9_]/g, ""))}
+                  />
+                </Field>
 
-          <div>
-            <label htmlFor="country" className="text-[14px] font-semibold text-foreground">
-              Nchi
-            </label>
-            <select
-              id="country"
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
-              className="mt-1.5 w-full rounded-xl border border-border bg-background px-4 py-3 text-[15px] outline-none focus:border-primary"
-            >
-              <option value="">Chagua nchi</option>
-              {countries.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
+                <Field label="Phone Number">
+                  <input
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-[15px] outline-none focus:border-primary"
+                    placeholder="06XXXXXXXX"
+                    inputMode="tel"
+                    required
+                    maxLength={10}
+                    value={form.phone}
+                    onChange={(e) => set("phone", e.target.value.replace(/\D/g, "").slice(0, 10))}
+                  />
+                </Field>
 
-          {error && stage === "form" && <p className="text-[13px] font-semibold text-destructive">{error}</p>}
+                <Field label="Email Address">
+                  <input
+                    type="email"
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-[15px] outline-none focus:border-primary"
+                    placeholder="name@mail.com"
+                    required
+                    value={form.email}
+                    onChange={(e) => set("email", e.target.value)}
+                  />
+                </Field>
 
-          <button
-            type="submit"
-            className="w-full rounded-xl bg-primary py-3.5 text-[17px] font-bold text-primary-foreground shadow-lg shadow-primary/30"
-          >
-            SIGN UP
-          </button>
-          <Link
-            to="/signin"
-            className="block w-full rounded-xl border-2 border-primary py-3 text-center text-[16px] font-bold text-primary"
-          >
-            SIGN IN
-          </Link>
-          <Link to="/" className="block text-center text-[14px] underline text-muted-foreground">
-            Rudi nyumbani
-          </Link>
+                <div className="md:col-span-2">
+                  <Field label="Country">
+                    <select
+                      className="w-full rounded-xl border border-border bg-background px-4 py-3 text-[15px] outline-none focus:border-primary"
+                      value={form.country}
+                      onChange={(e) => set("country", e.target.value)}
+                    >
+                      {countries.map((country) => (
+                        <option key={country} value={country}>{country}</option>
+                      ))}
+                    </select>
+                  </Field>
+                </div>
 
-        </form>
-      </main>
-
-      {stage !== "form" && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/50 px-3 py-6 sm:items-center">
-          <div className="w-full max-w-md overflow-hidden rounded-3xl bg-gradient-to-r from-brand-deep to-brand">
-            <div className="px-6 pb-4 pt-6">
-              <p className="text-[12px] font-bold tracking-[0.3em] text-brand-foreground">HATUA YA 2</p>
-            </div>
-            <div className="rounded-3xl bg-card px-5 py-6">
-              {stage === "pay" && (
-                <>
-                  <div className="rounded-2xl bg-muted py-5 text-center">
-                    <p className="text-[13px] font-bold tracking-[0.15em] text-brand-deep/70">KIASI CHA KULIPA</p>
-                    <p className="mt-1 text-[40px] font-black leading-none text-gold">
-                      {fmt(ACTIVATION_FEE)} <span className="text-[20px] align-middle">TZS</span>
-                    </p>
-                  </div>
-
-                  <label htmlFor="payphone" className="mt-5 block text-[16px] font-semibold text-foreground">
-                    Namba ya simu
-                  </label>
-                  <div className="mt-2 flex items-center gap-2 rounded-full border-2 border-primary px-4 py-3">
-                    <span aria-hidden>📱</span>
+                <Field label="Password">
+                  <div className="relative">
                     <input
-                      id="payphone"
-                      inputMode="numeric"
-                      maxLength={10}
-                      value={payPhone}
-                      onChange={(e) => setPayPhone(e.target.value)}
-                      placeholder="0712345678"
-                      className="w-full bg-transparent text-[17px] outline-none"
+                      type={showPass ? "text" : "password"}
+                      className="w-full rounded-xl border border-border bg-background px-4 py-3 pr-16 text-[15px] outline-none focus:border-primary"
+                      placeholder="••••••••"
+                      required
+                      minLength={4}
+                      value={form.password}
+                      onChange={(e) => set("password", e.target.value)}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPass((value) => !value)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground"
+                    >
+                      {showPass ? "Ficha" : "Onyesha"}
+                    </button>
                   </div>
-                  <p className="mt-2 text-[13px] text-muted-foreground">
-                    Utapokea USSD push ya kuthibitisha malipo kwenye namba hii.
-                  </p>
-                  {error && <p className="mt-2 text-[13px] font-semibold text-destructive">{error}</p>}
+                </Field>
 
-                  <button
-                    onClick={pay}
-                    className="mt-5 w-full rounded-full bg-primary py-4 text-[18px] font-bold tracking-wide text-primary-foreground"
-                  >
-                    LIPA SASA
-                  </button>
-                  <button
-                    onClick={() => setStage("form")}
-                    className="mx-auto mt-5 block text-[15px] underline text-foreground"
-                  >
-                    Rudi kwenye usajili
-                  </button>
-                </>
-              )}
+                <Field label="Confirm Password">
+                  <input
+                    type="password"
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-[15px] outline-none focus:border-primary"
+                    placeholder="••••••••"
+                    required
+                    value={form.confirm}
+                    onChange={(e) => set("confirm", e.target.value)}
+                  />
+                </Field>
 
-              {stage === "processing" && (
-                <div className="py-10 text-center">
-                  <div className="mx-auto size-12 animate-spin rounded-full border-4 border-muted border-t-primary" />
-                  <p className="mt-4 text-[16px] font-semibold text-foreground">Inasubiri malipo...</p>
-                  <p className="mt-1 text-[13px] text-muted-foreground">
-                    {statusNote || `Thibitisha USSD push kwenye ${payPhone}`}
+                <div className="md:col-span-2">
+                  <button
+                    type="submit"
+                    className="w-full rounded-xl bg-primary py-3.5 text-[17px] font-bold text-primary-foreground shadow-lg shadow-primary/30"
+                  >
+                    CONTINUE TO PAYMENT
+                  </button>
+                  <p className="mt-4 text-center text-sm text-muted-foreground">
+                    Tayari una akaunti?{" "}
+                    <Link to="/signin" className="font-bold text-primary">Login</Link>
                   </p>
                 </div>
-              )}
-
-              {stage === "done" && (
-                <div className="py-10 text-center">
-                  <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-primary text-2xl text-primary-foreground">
-                    ✓
-                  </div>
-                  <p className="mt-4 text-[18px] font-bold text-gold">Malipo yamepokelewa!</p>
-                  <p className="mt-1 text-[14px] text-muted-foreground">Akaunti yako imewashwa. Tunakupeleka kwenye dashboard...</p>
-                </div>
-              )}
-            </div>
+              </form>
+            </section>
           </div>
         </div>
-      )}
+      </main>
     </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-bold text-muted-foreground">{label}</span>
+      {children}
+    </label>
   );
 }
