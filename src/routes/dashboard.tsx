@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { chatters, fmt, loadAccount, type Account } from "@/lib/data";
@@ -18,7 +18,6 @@ export const Route = createFileRoute("/dashboard")({
 type WStage = "closed" | "form" | "processing" | "sent";
 
 function Dashboard() {
-  const navigate = useNavigate();
   const [account, setAccount] = useState<Account | null>(null);
   const [wStage, setWStage] = useState<WStage>("closed");
   const [wAmount, setWAmount] = useState("");
@@ -28,20 +27,21 @@ function Dashboard() {
 
   useEffect(() => {
     const sync = () => {
-      const current = loadAccount();
-      setAccount(current);
-      if (!current.username) {
-        navigate({ to: "/register" });
+      const next = loadAccount();
+      if (!next.username) {
+        window.location.href = "/register";
         return;
       }
-      if (!current.activated) {
-        navigate({ to: "/payment" });
+      if (!next.activated) {
+        window.location.href = "/payment";
+        return;
       }
+      setAccount(next);
     };
     sync();
     window.addEventListener("dolaway-account", sync);
     return () => window.removeEventListener("dolaway-account", sync);
-  }, [navigate]);
+  }, []);
 
   const available = chatters.filter((c) => !(account?.completed ?? []).includes(c.slug));
 

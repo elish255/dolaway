@@ -28,7 +28,7 @@ function SignInPage() {
     const acc = signIn(username, password);
     if (!acc) return setError("Username au password si sahihi.");
     setError("");
-    navigate({ to: "/dashboard" });
+    navigate({ to: acc.activated ? "/dashboard" : "/payment" });
   };
 
   return (
