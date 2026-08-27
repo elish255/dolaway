@@ -28,8 +28,8 @@ export type Account = {
   fullName: string;
   username: string;
   password: string;
-  phone: string;
   email: string;
+  phone: string;
   country: string;
   activated: boolean;
   balance: number;
@@ -57,8 +57,8 @@ export const emptyAccount: Account = {
   fullName: "",
   username: "",
   password: "",
-  phone: "",
   email: "",
+  phone: "",
   country: "",
   activated: false,
   balance: 0,
