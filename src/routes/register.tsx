@@ -4,6 +4,7 @@ import { emptyAccount, loadAccount, saveAccount, usernameTaken } from "@/lib/dat
 
 export const Route = createFileRoute("/register")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://www.dollaway.site/register" }],
     meta: [
       { title: "Jisajili — KOZENA SITE" },
       {

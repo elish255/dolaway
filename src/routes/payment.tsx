@@ -10,16 +10,17 @@ import { loadAccount, saveAccount } from "@/lib/data";
 
 export const Route = createFileRoute("/payment")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://www.dollaway.site/payment" }],
     meta: [
-      { title: "Lipa — KOZENA SITE" },
+      { title: "Lipa — DolaWay" },
       {
         name: "description",
         content:
-          "Lipia ada ya KOZENA SITE kwa USSD Push. Weka namba yako ya simu na thibitisha malipo kwenye simu.",
+          "Lipia ada ya DolaWay kwa USSD Push. Weka namba yako ya simu na thibitisha malipo kwenye simu.",
       },
       {
         property: "og:title",
-        content: "Lipa — KOZENA SITE",
+        content: "Lipa — DolaWay",
       },
       {
         property: "og:description",
@@ -213,7 +214,7 @@ function PaymentPage() {
 
             <p className="mt-1 text-sm leading-relaxed text-k-red-900">
               Lipia kupitia mfumo huu pekee au namba ya dharura ya{" "}
-              <strong>KOZENASITE</strong>.
+              <strong>DolaWay</strong>.
               Malipo nje ya mfumo huu ni batili na hayatakubaliwa.
             </p>
           </div>

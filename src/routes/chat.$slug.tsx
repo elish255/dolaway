@@ -4,7 +4,8 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { chatters, fmt, loadAccount, saveAccount, type Account } from "@/lib/data";
 
 export const Route = createFileRoute("/chat/$slug")({
-  head: () => ({
+  head: ({ params }) => ({
+    links: [{ rel: "canonical", href: `https://www.dollaway.site/chat/${encodeURIComponent(params.slug)}` }],
     meta: [
       { title: "Anza Chat | DolaWay" },
       { name: "description", content: "Anza mazungumzo na mgeni na ulipwe kwa muda wako kwenye DolaWay." },

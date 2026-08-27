@@ -5,6 +5,7 @@ import { signIn } from "@/lib/data";
 
 export const Route = createFileRoute("/signin")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://www.dollaway.site/signin" }],
     meta: [
       { title: "Ingia | DolaWay" },
       { name: "description", content: "Ingia kwenye akaunti yako ya DolaWay kwa username na password ili kuendelea kuchat na kulipwa." },

@@ -4,6 +4,7 @@ import { chatters, fmt } from "@/lib/data";
 
 export const Route = createFileRoute("/")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://www.dollaway.site/" }],
     meta: [
       { title: "DolaWay – Lipwa kwa Kuchat na Wageni" },
       {

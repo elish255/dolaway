@@ -5,6 +5,7 @@ import { chatters, fmt, loadAccount, type Account } from "@/lib/data";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://www.dollaway.site/dashboard" }],
     meta: [
       { title: "Dashboard | DolaWay" },
       { name: "description", content: "Angalia salio lako, chats zilizokamilika na uendelee kuchat ili kulipwa zaidi." },
