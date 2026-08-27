@@ -20,47 +20,7 @@ export const Route = createFileRoute("/payment")({
   component: PaymentPage,
 });
 
-const OPERATORS = [
-  {
-    id: "mpesa",
-    name: "M-Pesa",
-    ussd: "*150*00#",
-    steps: [
-      "Bonyeza *150*00#",
-      "Chagua Lipa kwa M-PESA",
-      "Chagua Weka Namba ya Kampuni",
-      "Weka M-PESA LIPA NAMBA: 354136248",
-      "Weka kiasi 14,500 TZS",
-      "Weka namba ya siri",
-    ],
-  },
-  {
-    id: "airtel",
-    name: "Airtel Money",
-    ussd: "*150*60#",
-    steps: [
-      "Bonyeza *150*60#",
-      "Chagua Lipia Bili",
-      "Chagua LIPA KWA SIMU (MITANDAO YOTE)",
-      "Chagua LIPA KWA VODA LIPA",
-      "Weka kiasi 14,500 TZS",
-      "Ingiza kumbukumbu ya malipo: 354136248",
-    ],
-  },
-  {
-    id: "halo",
-    name: "Halopesa",
-    ussd: "*150*88#",
-    steps: [
-      "Bonyeza *150*88#",
-      "Chagua (5) Lipia Bidhaa",
-      "Chagua (3) M-PESA",
-      "Weka namba ya malipo: 354136248",
-      "Weka kiasi 14,500 TZS",
-      "Ingiza namba ya siri",
-    ],
-  },
-];
+
 
 type Phase = "form" | "waiting" | "failed";
 
@@ -238,8 +198,7 @@ function PaymentPage() {
 
         <section className="overflow-hidden rounded-3xl border-[1.5px] border-k-slate-200 bg-white">
           <div className="border-b border-k-slate-100 px-5 py-4">
-            <h3 className="font-semibold">Njia nyingine za kulipia</h3>
-            <p className="text-xs text-k-slate-500">Tumia LIPA NAMBA kama push haijafika</p>
+          
           </div>
           {OPERATORS.map((op) => (
             <div key={op.id} className="border-b border-k-slate-100 last:border-0">
