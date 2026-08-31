@@ -47,6 +47,15 @@ function isH3SwallowedErrorBody(body: string): boolean {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      // Keep the old single-L domain from competing with the canonical brand domain.
+      // This is effective when both domains point to this deployment.
+      const url = new URL(request.url);
+      const hostname = url.hostname.toLowerCase();
+      if (hostname === "dolaway.site" || hostname === "www.dolaway.site") {
+        url.hostname = "www.dollaway.site";
+        return Response.redirect(url.toString(), 301);
+      }
+
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);

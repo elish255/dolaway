@@ -3,49 +3,61 @@
   <url>
     <loc>https://www.dollaway.site/</loc>
     <changefreq>daily</changefreq>
+    <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.dollaway.site/chat/Isabella</loc>
     <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.dollaway.site/chat/Priya</loc>
     <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.dollaway.site/chat/Felix</loc>
     <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.dollaway.site/chat/Harriet</loc>
     <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.dollaway.site/chat/Bianca</loc>
     <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.dollaway.site/chat/Rosalie</loc>
     <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.dollaway.site/chat/Rowan</loc>
     <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.dollaway.site/chat/Matilda</loc>
     <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.dollaway.site/chat/Thomas</loc>
     <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.dollaway.site/register</loc>
     <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.dollaway.site/signin</loc>
     <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
   </url>
 </urlset>
