@@ -77,21 +77,27 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "DolaWay – Lipwa kwa Kuchat na Wageni" },
+      { title: "DolaWay (Dolaway) – Chat na Wageni na Upate Kipato" },
       {
         name: "description",
         content:
-          "Chat na wageni kutoka duniani kote na upate hadi TZS 100,000 kwa siku. Jisajili, anza kuchat na kulipwa kwenye DolaWay.",
+          "DolaWay (Dolaway) ni platform ya kuchat na wageni kutoka duniani kote na kupata kipato. Jisajili, anza mazungumzo na ulipwe kwa muda wako.",
       },
-      { property: "og:title", content: "DolaWay – Lipwa kwa Kuchat na Wageni" },
+      { property: "og:title", content: "DolaWay (Dolaway) – Chat na Wageni na Upate Kipato" },
       {
         property: "og:description",
-        content: "Chat na wageni duniani kote na upate hadi TZS 100,000 kwa siku.",
+        content: "Chat na wageni duniani kote na upate kipato kwa muda wako kupitia DolaWay.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "robots", content: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" },
+      { name: "theme-color", content: "#0b132b" },
+      { property: "og:url", content: "https://www.dollaway.site/" },
+      { property: "og:site_name", content: "DolaWay" },
+      { name: "application-name", content: "DolaWay" },
     ],
     links: [
+      { rel: "canonical", href: "https://www.dollaway.site/" },
       {
         rel: "stylesheet",
         href: appCss,

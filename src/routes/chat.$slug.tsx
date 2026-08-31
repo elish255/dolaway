@@ -7,10 +7,12 @@ export const Route = createFileRoute("/chat/$slug")({
   head: ({ params }) => ({
     links: [{ rel: "canonical", href: `https://www.dollaway.site/chat/${encodeURIComponent(params.slug)}` }],
     meta: [
-      { title: "Anza Chat | DolaWay" },
-      { name: "description", content: "Anza mazungumzo na mgeni na ulipwe kwa muda wako kwenye DolaWay." },
-      { property: "og:title", content: "Anza Chat | DolaWay" },
-      { property: "og:description", content: "Anza mazungumzo na mgeni na ulipwe kwa muda wako." },
+      { name: "robots", content: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" },
+      { property: "og:url", content: `https://www.dollaway.site/chat/${encodeURIComponent(params.slug)}` },
+      { title: `${params.slug} – Chat | DolaWay (Dolaway)` },
+      { name: "description", content: `Anza mazungumzo na ${params.slug} kwenye DolaWay (Dolaway), platform ya kuchat na wageni na kupata kipato kwa muda wako.` },
+      { property: "og:title", content: `${params.slug} – Chat | DolaWay (Dolaway)` },
+      { property: "og:description", content: `Anza mazungumzo na ${params.slug} kwenye DolaWay (Dolaway).` },
     ],
   }),
   component: ChatPage,

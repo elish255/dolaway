@@ -6,16 +6,16 @@ export const Route = createFileRoute("/")({
   head: () => ({
     links: [{ rel: "canonical", href: "https://www.dollaway.site/" }],
     meta: [
-      { title: "DolaWay – Lipwa kwa Kuchat na Wageni" },
+      { title: "DolaWay (Dolaway) – Chat na Wageni na Upate Kipato" },
       {
         name: "description",
         content:
-          "Chat na wageni kutoka duniani kote na upate hadi TZS 100,000 kwa siku. Jisajili, lipa activation, anza kuchat na kulipwa.",
+          "DolaWay (Dolaway) ni platform ya kuchat na wageni kutoka duniani kote na kupata kipato. Jisajili, anza kuchat na ulipwe kwa muda wako.",
       },
-      { property: "og:title", content: "DolaWay – Lipwa kwa Kuchat na Wageni" },
+      { property: "og:title", content: "DolaWay (Dolaway) – Chat na Wageni na Upate Kipato" },
       {
         property: "og:description",
-        content: "Chat na wageni duniani kote na upate hadi TZS 100,000 kwa siku.",
+        content: "Chat na wageni duniani kote na upate kipato kwa muda wako kupitia DolaWay.",
       },
     ],
   }),
@@ -38,7 +38,34 @@ function Index() {
         </h1>
       </section>
 
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            name: "DolaWay",
+            alternateName: ["Dolaway", "Dollaway"],
+            url: "https://www.dollaway.site/",
+            description:
+              "DolaWay (Dolaway) ni platform ya kuchat na wageni kutoka duniani kote na kupata kipato kwa muda wako.",
+            potentialAction: {
+              "@type": "SearchAction",
+              target: "https://www.dollaway.site/?q={search_term_string}",
+              "query-input": "required name=search_term_string",
+            },
+          }),
+        }}
+      />
       <main className="mx-auto max-w-lg space-y-4 px-3 py-4">
+        <section className="sr-only" aria-label="Kuhusu DolaWay">
+          <h2>DolaWay (Dolaway)</h2>
+          <p>
+            DolaWay, pia hutafutwa kama Dolaway, ni platform inayowaunganisha watumiaji na
+            wageni kutoka duniani kote kwa mazungumzo ya mtandaoni. Chagua mtu wa kuzungumza
+            naye, anza chat, na pata kipato kulingana na muda wako.
+          </p>
+        </section>
         {chatters.map((c) => (
           <article key={c.slug} className="card-soft p-4">
             <div className="flex items-start gap-3">
