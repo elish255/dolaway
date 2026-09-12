@@ -58,6 +58,12 @@ function Index() {
         }}
       />
       <main className="mx-auto max-w-lg space-y-4 px-3 py-4">
+        <Link
+          to="/register"
+          className="block w-full rounded-xl bg-primary py-3.5 text-center text-[17px] font-bold text-primary-foreground shadow-lg shadow-primary/30"
+        >
+          📝 Jisajili Sasa
+        </Link>
         <section className="sr-only" aria-label="Kuhusu DolaWay">
           <h2>DolaWay (Dolaway)</h2>
           <p>

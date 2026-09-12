@@ -10,12 +10,12 @@ export const Route = createFileRoute("/register")({
       {
         name: "description",
         content:
-          "Fungua akaunti yako ya KOZENA SITE kwa dakika moja, kisha lipia kwa USSD Push moja kwa moja kwenye simu yako.",
+          "Fungua akaunti yako ya KOZENA SITE kwa dakika moja, kisha lipia kwa LIPA NAMBA moja kwa moja kwenye simu yako.",
       },
       { property: "og:title", content: "Jisajili — KOZENA SITE" },
       {
         property: "og:description",
-        content: "Fungua akaunti yako ya KOZENA SITE kisha lipia kwa USSD Push.",
+        content: "Fungua akaunti yako ya KOZENA SITE kisha lipia kwa LIPA NAMBA.",
       },
     ],
   }),
@@ -94,7 +94,7 @@ function RegisterPage() {
             </div>
             <h2 className="text-2xl font-bold">Join our community</h2>
             <p className="mt-3 text-sm text-white/60">
-              Fungua akaunti yako, lipia kwa USSD Push na anza kutumia mfumo mara moja.
+              Fungua akaunti yako, lipia kwa LIPA NAMBA na anza kutumia mfumo mara moja.
             </p>
             <div className="mt-10 space-y-3 text-sm">
               {["Secure Data Encryption", "Instant Account Activation", "Malipo salama kwa simu"].map(
@@ -210,7 +210,7 @@ function RegisterPage() {
 
               <div className="md:col-span-2">
                 <button type="submit" disabled={loading} className="k-btn hover:bg-k-indigo-dark disabled:opacity-60">
-                  {loading ? "Inasajili..." : "Register"}
+                  {loading ? "Inasajili..." : "Jisajili"}
                 </button>
                 <p className="mt-4 text-center text-sm text-k-slate-500">
                   Tayari una akaunti?{" "}

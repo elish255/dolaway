@@ -1,11 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
-import {
-  checkPaymentStatus,
-  createPaymentOrder,
-  PAYMENT_AMOUNT,
-} from "@/lib/mobilipa.functions";
+import { useEffect, useState } from "react";
 import { loadAccount, saveAccount } from "@/lib/data";
 
 export const Route = createFileRoute("/payment")({
@@ -16,37 +10,27 @@ export const Route = createFileRoute("/payment")({
       {
         name: "description",
         content:
-          "Lipia ada ya DolaWay kwa USSD Push. Weka namba yako ya simu na thibitisha malipo kwenye simu.",
+          "Lipia ada ya DolaWay kwa LIPA NAMBA. Tumia namba 251161660 na kiasi cha 15,000 TZS.",
       },
-      {
-        property: "og:title",
-        content: "Lipa — DolaWay",
-      },
+      { property: "og:title", content: "Lipa — DolaWay" },
       {
         property: "og:description",
-        content:
-          "Lipia kwa USSD Push moja kwa moja kwenye simu yako.",
+        content: "Lipia kwa LIPA NAMBA 251161660 — 15,000 TZS.",
       },
     ],
   }),
   component: PaymentPage,
 });
 
-type Phase = "form" | "waiting" | "failed";
+const LIPA_NUMBER = "251161660";
+const PAYMENT_AMOUNT = 15000;
+const BUSINESS_NAME = "ASSET BRIDGE";
 
 function PaymentPage() {
   const navigate = useNavigate();
-
-  const createOrder = useServerFn(createPaymentOrder);
-  const pollStatus = useServerFn(checkPaymentStatus);
-
   const [ready, setReady] = useState(false);
-  const [phone, setPhone] = useState("");
-  const [phase, setPhase] = useState<Phase>("form");
-  const [message, setMessage] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const account = loadAccount();
@@ -61,120 +45,30 @@ function PaymentPage() {
       return;
     }
 
-    setPhone(account.phone || "");
     setReady(true);
-
-    return () => {
-      if (timer.current) {
-        clearInterval(timer.current);
-      }
-    };
   }, [navigate]);
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-
-    setError(null);
-    setMessage(null);
-    setPhase("waiting");
-
+  async function copyLipaNumber() {
     try {
-      const account = loadAccount();
-
-      const updated = {
-        ...account,
-        phone,
-      };
-
-      saveAccount(updated);
-
-      const order = await createOrder({
-        data: {
-          name: updated.fullName,
-          email: updated.email,
-          phone,
-        },
-      });
-
-      setMessage(order.message);
-
-      let attempts = 0;
-
-      timer.current = setInterval(async () => {
-        attempts += 1;
-
-        try {
-          const res = await pollStatus({
-            data: {
-              orderId: order.order_id,
-            },
-          });
-
-          if (
-            ["COMPLETED", "SUCCESS", "SUCCESSFUL", "PAID"].includes(
-              res.payment_status
-            )
-          ) {
-            if (timer.current) {
-              clearInterval(timer.current);
-            }
-
-            saveAccount({
-              ...loadAccount(),
-              phone,
-              activated: true,
-            });
-
-            navigate({
-              to: "/dashboard",
-            });
-
-            return;
-          }
-
-          if (
-            [
-              "CANCELLED",
-              "USERCANCELLED",
-              "REJECTED",
-              "FAILED",
-            ].includes(res.payment_status)
-          ) {
-            if (timer.current) {
-              clearInterval(timer.current);
-            }
-
-            setPhase("failed");
-
-            setError(
-              "Malipo hayakukamilika. Tafadhali jaribu tena."
-            );
-          }
-        } catch {
-          // Endelea ku-check status
-        }
-
-        if (attempts >= 40) {
-          if (timer.current) {
-            clearInterval(timer.current);
-          }
-
-          setPhase("failed");
-
-          setError(
-            "Muda umeisha bila kupokea uthibitisho wa malipo. Jaribu tena."
-          );
-        }
-      }, 4000);
-    } catch (err) {
-      setPhase("failed");
-
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Imeshindikana kuanzisha malipo."
-      );
+      await navigator.clipboard.writeText(LIPA_NUMBER);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setCopied(false);
     }
+  }
+
+  function completePayment() {
+    setError(null);
+    const account = loadAccount();
+
+    if (!account.username) {
+      navigate({ to: "/register" });
+      return;
+    }
+
+    saveAccount({ ...account, activated: true });
+    navigate({ to: "/dashboard" });
   }
 
   if (!ready) {
@@ -189,33 +83,25 @@ function PaymentPage() {
     <div className="min-h-screen bg-k-slate-50 font-jost text-k-slate-800">
       <header className="flex items-center justify-between bg-k-green-900 px-6 py-4">
         <span className="text-lg font-extrabold tracking-tight text-white">
-          DOLAWAY{" "}
-          <span className="text-k-amber-400">
-            SITE
-          </span>
+          DOLAWAY <span className="text-k-amber-400">SITE</span>
         </span>
-
         <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] tracking-wide text-k-green-100">
           MALIPO SALAMA
         </span>
       </header>
 
       <main className="mx-auto max-w-xl px-4 pb-16 pt-7">
-
         <div className="mb-6 flex gap-3 rounded-2xl border-[1.5px] border-k-red-300 bg-k-red-50 p-4">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-k-red-100 text-k-red-600">
             🛡
           </div>
-
           <div>
             <h2 className="text-xs font-bold tracking-widest text-k-red-600">
               LINDA PESA YAKO
             </h2>
-
             <p className="mt-1 text-sm leading-relaxed text-k-red-900">
-              Lipia kupitia mfumo huu pekee au namba ya dharura ya{" "}
-              <strong>DolaWay</strong>.
-              Malipo nje ya mfumo huu ni batili na hayatakubaliwa.
+              Tumia LIPA NAMBA iliyoonyeshwa hapa chini pekee. Hakikisha jina
+              la biashara ni <strong>{BUSINESS_NAME}</strong> kabla ya kuthibitisha malipo.
             </p>
           </div>
         </div>
@@ -226,33 +112,84 @@ function PaymentPage() {
           </span>
         </div>
 
+        <div className="mb-5 rounded-2xl border-[1.5px] border-k-green-200 bg-white p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold tracking-widest text-k-green-700">
+                LIPA NAMBA
+              </p>
+              <p className="mt-1 text-2xl font-black tracking-wide text-k-green-900">
+                {LIPA_NUMBER}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={copyLipaNumber}
+              className="rounded-xl bg-k-green-100 px-4 py-2 text-xs font-bold text-k-green-900 hover:bg-k-green-200"
+            >
+              {copied ? "✓ Imekopiwa" : "Copy"}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl bg-k-green-50 px-4 py-3">
+              <p className="text-xs text-k-slate-500">Kiasi cha kulipa</p>
+              <p className="mt-1 text-lg font-black text-k-green-900">
+                {PAYMENT_AMOUNT.toLocaleString()} TZS
+              </p>
+            </div>
+            <div className="rounded-xl bg-k-green-50 px-4 py-3">
+              <p className="text-xs text-k-slate-500">Jina la Biashara</p>
+              <p className="mt-1 text-sm font-black text-k-green-900">
+                {BUSINESS_NAME}
+              </p>
+            </div>
+          </div>
+        </div>
+
         <section className="overflow-hidden rounded-3xl border-[1.5px] border-k-slate-200 bg-white">
           <div className="flex items-center gap-3 border-b border-k-slate-100 px-5 py-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-k-green-50 text-k-green-700">
-              ⚡
+              💳
             </div>
-
             <div>
-              <h3 className="font-semibold">
-                Tanzania
-              </h3>
-
-              <p className="text-xs text-k-slate-500">
-                Lipia moja kwa moja kwa USSD Push
-              </p>
+              <h3 className="font-semibold">Lipa kwa simu</h3>
+              <p className="text-xs text-k-slate-500">Tumia LIPA NAMBA 251161660</p>
             </div>
           </div>
 
           <div className="px-5 py-5">
+            <div className="mb-5 rounded-2xl bg-k-green-50 px-4 py-4">
+              <p className="mb-3 text-sm font-bold text-k-green-900">
+                Hatua za malipo
+              </p>
+              <ol className="space-y-3 text-sm text-k-slate-700">
+                <li className="flex gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-k-green-800 text-xs font-bold text-white">1</span>
+                  <span>Fungua huduma ya pesa kwenye simu yako.</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-k-green-800 text-xs font-bold text-white">2</span>
+                  <span>Chagua <strong>Lipa kwa Simu / Lipa Bill</strong>.</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-k-green-800 text-xs font-bold text-white">3</span>
+                  <span>Ingiza LIPA NAMBA <strong>{LIPA_NUMBER}</strong>.</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-k-green-800 text-xs font-bold text-white">4</span>
+                  <span>Ingiza kiasi cha <strong>{PAYMENT_AMOUNT.toLocaleString()} TZS</strong>.</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-k-green-800 text-xs font-bold text-white">5</span>
+                  <span>Hakikisha jina ni <strong>{BUSINESS_NAME}</strong>, kisha thibitisha kwa PIN yako.</span>
+                </li>
+              </ol>
+            </div>
 
-            <div className="mb-4 flex items-center justify-between rounded-2xl bg-k-green-50 px-4 py-3">
-              <span className="text-sm text-k-green-700">
-                Kiasi cha kulipa
-              </span>
-
-              <span className="text-lg font-bold text-k-green-900">
-                {PAYMENT_AMOUNT.toLocaleString()} TZS
-              </span>
+            <div className="mb-4 rounded-xl border border-k-amber-300 bg-k-amber-50 px-4 py-3 text-sm text-k-slate-700">
+              <strong>Muhimu:</strong> Usithibitishe malipo kama jina la biashara
+              halionyeshi <strong>{BUSINESS_NAME}</strong>.
             </div>
 
             {error && (
@@ -261,68 +198,19 @@ function PaymentPage() {
               </div>
             )}
 
-            {phase === "waiting" ? (
-              <div className="rounded-2xl border-[1.5px] border-k-slate-200 p-6 text-center">
+            <button
+              type="button"
+              onClick={completePayment}
+              className="k-btn-green hover:opacity-90"
+            >
+              ✓ NIMEKAMILISHA MALIPO
+            </button>
 
-                <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-k-green-100 border-t-k-green-700" />
-
-                <p className="font-semibold text-k-green-900">
-                  Subiri uthibitisho...
-                </p>
-
-                <p className="mt-1 text-sm text-k-slate-500">
-                  {message ??
-                    "Push USSD imetumwa kwenye simu yako."}{" "}
-                  Ingiza namba yako ya siri kuthibitisha malipo.
-                </p>
-
-              </div>
-            ) : (
-              <form onSubmit={onSubmit}>
-
-                <label
-                  className="mb-1 block text-xs font-bold text-k-slate-500"
-                  htmlFor="tz-phone"
-                >
-                  Namba ya simu
-                </label>
-
-                <div className="mb-4 flex items-center overflow-hidden rounded-xl border-[1.5px] border-k-slate-200 bg-k-slate-50">
-
-                  <span className="border-r border-k-slate-200 px-3 py-3 text-sm text-k-slate-500">
-                    🇹🇿 +255
-                  </span>
-
-                  <input
-                    id="tz-phone"
-                    type="tel"
-                    required
-                    maxLength={12}
-                    placeholder="06XXXXXXXX"
-                    value={phone}
-                    onChange={(e) =>
-                      setPhone(
-                        e.target.value.replace(/\D/g, "")
-                      )
-                    }
-                    className="w-full bg-transparent px-3 py-3 text-sm outline-none"
-                  />
-
-                </div>
-
-                <button
-                  type="submit"
-                  className="k-btn-green hover:opacity-90"
-                >
-                  🔒 LIPA SASA
-                </button>
-
-              </form>
-            )}
-
+            <p className="mt-3 text-center text-xs leading-relaxed text-k-slate-500">
+              Baada ya kufanya malipo, gusa kitufe hapo juu ili kuendelea kwenye dashboard.
+            </p>
           </div>
         </section>
-
       </main>
     </div>
   );

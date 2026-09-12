@@ -22,7 +22,7 @@ export const chatters: Chatter[] = [
   { slug: "Thomas", name: "Thomas", emoji: "💼", avatar: "https://i.pravatar.cc/150?img=28", online: true, rating: 4.8, minutes: 40, wants: "Business & Work Vocabulary", tzs: 46000 },
 ];
 
-export const ACTIVATION_FEE = 14500;
+export const ACTIVATION_FEE = 15000;
 
 export type Account = {
   fullName: string;
