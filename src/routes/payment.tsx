@@ -10,12 +10,12 @@ export const Route = createFileRoute("/payment")({
       {
         name: "description",
         content:
-          "Lipia ada ya DolaWay kwa LIPA NAMBA. Tumia namba 251161660 na kiasi cha 15,000 TZS.",
+          "Lipia ada ya DolaWay kwa LIPA NAMBA. Tumia namba 251161660 na kiasi cha 14,500 TZS.",
       },
       { property: "og:title", content: "Lipa — DolaWay" },
       {
         property: "og:description",
-        content: "Lipia kwa LIPA NAMBA 251161660 — 15,000 TZS.",
+        content: "Lipia kwa LIPA NAMBA 251161660 — 14,500 TZS.",
       },
     ],
   }),

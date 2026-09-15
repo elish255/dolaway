@@ -52,3 +52,51 @@ export async function reviewPayment(id:string,status:"approved"|"rejected"){retu
 export const approvePayment=(id:string)=>reviewPayment(id,"approved");
 export const rejectPayment=(id:string)=>reviewPayment(id,"rejected");
 export const fmt=(n:number)=>n.toLocaleString("en-US");
+// ===== DolaWay compatibility exports =====
+
+export const chatters = [
+  {
+    slug: "Isabella",
+    name: "Isabella",
+  },
+  {
+    slug: "Priya",
+    name: "Priya",
+  },
+  {
+    slug: "Felix",
+    name: "Felix",
+  },
+  {
+    slug: "Harriet",
+    name: "Harriet",
+  },
+  {
+    slug: "Bianca",
+    name: "Bianca",
+  },
+  {
+    slug: "Rosalie",
+    name: "Rosalie",
+  },
+  {
+    slug: "Rowan",
+    name: "Rowan",
+  },
+  {
+    slug: "Matilda",
+    name: "Matilda",
+  },
+  {
+    slug: "Thomas",
+    name: "Thomas",
+  },
+];
+
+
+export async function completeChat(sessionId: string) {
+  return await rpc("send_chat_message", {
+    p_session_id: sessionId,
+    p_content: "completed"
+  });
+}
