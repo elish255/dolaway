@@ -6,16 +6,16 @@ export const Route = createFileRoute("/register")({
   head: () => ({
     links: [{ rel: "canonical", href: "https://www.dollaway.site/register" }],
     meta: [
-      { title: "Jisajili — KOZENA SITE" },
+      { title: "Jisajili — DOLLAWAY SITE" },
       {
         name: "description",
         content:
-          "Fungua akaunti yako ya KOZENA SITE kwa dakika moja, kisha lipia kwa LIPA NAMBA moja kwa moja kwenye simu yako.",
+          "Fungua akaunti yako ya DOLLAWAY SITE kwa dakika moja, kisha lipia kwa LIPA NAMBA moja kwa moja kwenye simu yako.",
       },
-      { property: "og:title", content: "Jisajili — KOZENA SITE" },
+      { property: "og:title", content: "Jisajili — DOLLAWAY SITE" },
       {
         property: "og:description",
-        content: "Fungua akaunti yako ya KOZENA SITE kisha lipia kwa LIPA NAMBA.",
+        content: "Fungua akaunti yako ya DOLLAWAY SITE kisha lipia kwa LIPA NAMBA.",
       },
     ],
   }),
@@ -78,7 +78,7 @@ function RegisterPage() {
         <div className="k-card grid grid-cols-1 lg:grid-cols-12">
           <aside className="hidden bg-k-dark p-10 text-white lg:col-span-5 lg:flex lg:flex-col">
             <div className="mb-10 inline-flex w-fit rounded-xl bg-white px-3 py-2">
-              <img src="/favicon-192x192.png" alt="KOZENA SITE" className="h-8 w-auto object-contain" />
+              <img src="/favicon-192x192.png" alt="DOLLAWAY SITE" className="h-8 w-auto object-contain" />
             </div>
             <h2 className="text-2xl font-bold">Join our community</h2>
             <p className="mt-3 text-sm text-white/60">
@@ -96,7 +96,7 @@ function RegisterPage() {
                 ),
               )}
             </div>
-            <p className="mt-auto pt-10 text-xs text-white/40">© KOZENA SITE</p>
+            <p className="mt-auto pt-10 text-xs text-white/40">© DOLLAWAY SITE</p>
           </aside>
 
           <section className="p-6 md:p-10 lg:col-span-7">

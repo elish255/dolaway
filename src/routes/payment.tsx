@@ -114,6 +114,7 @@ function PaymentPage() {
   const [showRetryPopup, setShowRetryPopup] = useState(false);
 
   useEffect(() => {
+  async function checkAccount() {
     const account = await loadAccount();
 
     if (!account.id) {
@@ -121,12 +122,28 @@ function PaymentPage() {
       return;
     }
 
-    if (account.status === "approved") { navigate({ to: "/dashboard" }); return; }
+    if (account.status === "approved") {
+      navigate({ to: "/dashboard" });
+      return;
+    }
+
     void createPayment(account.phone).catch(() => undefined);
+
     setReady(true);
-    const poll = window.setInterval(() => { void loadAccount().then((next) => { if (next.status === "approved") navigate({ to: "/dashboard" }); }); }, 5000);
+
+    const poll = window.setInterval(() => {
+      void loadAccount().then((next) => {
+        if (next.status === "approved") {
+          navigate({ to: "/dashboard" });
+        }
+      });
+    }, 5000);
+
     return () => window.clearInterval(poll);
-  }, [navigate]);
+  }
+
+  checkAccount();
+}, [navigate]);
 
   async function copyLipaNumber() {
     try {
