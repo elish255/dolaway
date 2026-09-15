@@ -7,7 +7,7 @@ export function SiteHeader() {
   const [balance, setBalance] = useState(0);
 
   useEffect(() => {
-    const sync = () => setBalance(loadAccount().balance);
+    const sync = () => { void loadAccount().then((a) => setBalance(a.balance)); };
     sync();
     window.addEventListener("dolaway-account", sync);
     const t = setInterval(() => setLive((v) => v + Math.floor(Math.random() * 40) + 3), 4000);
