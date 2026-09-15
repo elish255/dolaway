@@ -58,45 +58,99 @@ export const chatters = [
   {
     slug: "Isabella",
     name: "Isabella",
+    country: "United Kingdom",
+    avatar: "",
+    payout: 15000,
+    balance: 0,
+    earnings: 0,
+    message_count: 0,
   },
   {
     slug: "Priya",
     name: "Priya",
+    country: "India",
+    avatar: "",
+    payout: 15000,
+    balance: 0,
+    earnings: 0,
+    message_count: 0,
   },
   {
     slug: "Felix",
     name: "Felix",
+    country: "Germany",
+    avatar: "",
+    payout: 15000,
+    balance: 0,
+    earnings: 0,
+    message_count: 0,
   },
   {
     slug: "Harriet",
     name: "Harriet",
+    country: "USA",
+    avatar: "",
+    payout: 15000,
+    balance: 0,
+    earnings: 0,
+    message_count: 0,
   },
   {
     slug: "Bianca",
     name: "Bianca",
+    country: "Italy",
+    avatar: "",
+    payout: 15000,
+    balance: 0,
+    earnings: 0,
+    message_count: 0,
   },
   {
     slug: "Rosalie",
     name: "Rosalie",
+    country: "France",
+    avatar: "",
+    payout: 15000,
+    balance: 0,
+    earnings: 0,
+    message_count: 0,
   },
   {
     slug: "Rowan",
     name: "Rowan",
+    country: "Canada",
+    avatar: "",
+    payout: 15000,
+    balance: 0,
+    earnings: 0,
+    message_count: 0,
   },
   {
     slug: "Matilda",
     name: "Matilda",
+    country: "Australia",
+    avatar: "",
+    payout: 15000,
+    balance: 0,
+    earnings: 0,
+    message_count: 0,
   },
   {
     slug: "Thomas",
     name: "Thomas",
+    country: "Netherlands",
+    avatar: "",
+    payout: 15000,
+    balance: 0,
+    earnings: 0,
+    message_count: 0,
   },
 ];
 
 
-export async function completeChat(sessionId: string) {
-  return await rpc("send_chat_message", {
-    p_session_id: sessionId,
-    p_content: "completed"
+export async function completeChat(sessionId:string){
+  return rpc("send_chat_message",{
+    p_session_id:sessionId,
+    p_content:"completed"
   });
 }
