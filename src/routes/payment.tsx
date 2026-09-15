@@ -114,15 +114,15 @@ function PaymentPage() {
   const [showRetryPopup, setShowRetryPopup] = useState(false);
 
   useEffect(() => {
-    const account = loadAccount();
+    const account = await loadAccount();
 
-    if (!account.username) {
+    if (!account.id) {
       navigate({ to: "/register" });
       return;
     }
 
     if (account.status === "approved") { navigate({ to: "/dashboard" }); return; }
-    void createPayment().catch(() => undefined);
+    void createPayment(account.phone).catch(() => undefined);
     setReady(true);
     const poll = window.setInterval(() => { void loadAccount().then((next) => { if (next.status === "approved") navigate({ to: "/dashboard" }); }); }, 5000);
     return () => window.clearInterval(poll);

@@ -10,7 +10,7 @@ function Dashboard() {
   const [account, setAccount] = useState<Account | null>(null);
   const [wStage, setWStage] = useState<WStage>("closed");
   const [wAmount, setWAmount] = useState(""); const [wPhone, setWPhone] = useState(""); const [wError, setWError] = useState(""); const [wSent, setWSent] = useState({amount:0,phone:""});
-  const sync = () => void loadAccount().then((a) => { if (!a.username) window.location.href="/register"; else if (a.status !== "approved") window.location.href="/payment"; else setAccount(a); });
+  const sync = () => void loadAccount().then((a) => { if (!a.id) window.location.href="/signin"; else if (a.status !== "approved") window.location.href="/payment"; else setAccount(a); });
   useEffect(() => { sync(); window.addEventListener("dolaway-account", sync); return () => window.removeEventListener("dolaway-account", sync); }, []);
   const available = chatters.filter(c => !(account?.completed ?? []).includes(c.slug));
   const openWithdraw = () => { setWError(""); setWAmount(""); setWPhone(account?.phone ?? ""); setWStage("form"); };
