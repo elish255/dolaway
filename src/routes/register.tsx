@@ -49,7 +49,7 @@ function RegisterPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    void loadAccount().then((account) => { if (account.username) navigate({ to: account.status === "approved" ? "/dashboard" : "/payment" }); });
+    void loadAccount().then((account) => { if (account.id) navigate({ to: account.status === "approved" ? "/dashboard" : "/payment" }); });
   }, [navigate]);
 
   const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
