@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { loadAccount } from "@/lib/data";
+import { ACTIVATION_FEE, createPayment, loadAccount, getPendingPayment } from "@/lib/data";
 
 export const Route = createFileRoute("/payment")({
   head: () => ({
@@ -23,7 +23,7 @@ export const Route = createFileRoute("/payment")({
 });
 
 const LIPA_NUMBER = "251161660";
-const PAYMENT_AMOUNT = 15000;
+const PAYMENT_AMOUNT = ACTIVATION_FEE;
 const BUSINESS_NAME = "ASSET BRIDGE";
 
 type Operator = {
@@ -121,9 +121,11 @@ function PaymentPage() {
       return;
     }
 
-    // Never automatically unlock the dashboard from this page.
-    // Payment confirmation must happen through a real verification flow.
+    if (account.status === "approved") { navigate({ to: "/dashboard" }); return; }
+    void createPayment().catch(() => undefined);
     setReady(true);
+    const poll = window.setInterval(() => { void loadAccount().then((next) => { if (next.status === "approved") navigate({ to: "/dashboard" }); }); }, 5000);
+    return () => window.clearInterval(poll);
   }, [navigate]);
 
   async function copyLipaNumber() {
@@ -136,8 +138,8 @@ function PaymentPage() {
     }
   }
 
-  function completePayment() {
-    setShowRetryPopup(true);
+  async function completePayment() {
+    try { await getPendingPayment(); setShowRetryPopup(true); } catch { setShowRetryPopup(true); }
   }
 
   if (!ready) {
@@ -309,16 +311,16 @@ function PaymentPage() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-k-amber-100 text-3xl">⚠️</div>
-            <h2 className="mt-4 text-xl font-extrabold text-k-slate-900">Fanya malipo Kisha Jaribu tena!</h2>
+            <h2 className="mt-4 text-xl font-extrabold text-k-slate-900">Malipo yamepokelewa kwa ukaguzi</h2>
             <p className="mt-2 text-sm leading-relaxed text-k-slate-500">
-              Tafadhali kamilisha malipo ya <strong>{PAYMENT_AMOUNT.toLocaleString()} TZS</strong> kwa LIPA NAMBA <strong>{LIPA_NUMBER}</strong>, kisha bonyeza kitufe tena.
+              Kamilisha malipo ya <strong>{PAYMENT_AMOUNT.toLocaleString()} TZS</strong> kwa LIPA NAMBA <strong>{LIPA_NUMBER}</strong>. Admin akithibitisha malipo, akaunti yako itafunguliwa na utaelekezwa dashboard.
             </p>
             <button
               type="button"
               onClick={() => setShowRetryPopup(false)}
               className="mt-5 w-full rounded-xl bg-k-green-800 px-4 py-3 font-bold text-white"
             >
-              Sawa, Nimeelewa
+              Nimeelewa
             </button>
           </div>
         </div>

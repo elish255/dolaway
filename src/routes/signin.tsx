@@ -24,12 +24,12 @@ function SignInPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const acc = signIn(username, password);
+    const acc = await signIn(username, password);
     if (!acc) return setError("Username au password si sahihi.");
     setError("");
-    navigate({ to: acc.activated ? "/dashboard" : "/payment" });
+    navigate({ to: acc.status === "approved" ? "/dashboard" : "/payment" });
   };
 
   return (

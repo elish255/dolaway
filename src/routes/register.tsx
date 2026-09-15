@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { emptyAccount, loadAccount, saveAccount, usernameTaken } from "@/lib/data";
+import { loadAccount, registerAccount } from "@/lib/data";
 
 export const Route = createFileRoute("/register")({
   head: () => ({
@@ -49,10 +49,7 @@ function RegisterPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const account = loadAccount();
-    if (account.username) {
-      navigate({ to: account.activated ? "/dashboard" : "/payment" });
-    }
+    void loadAccount().then((account) => { if (account.username) navigate({ to: account.status === "approved" ? "/dashboard" : "/payment" }); });
   }, [navigate]);
 
   const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
@@ -64,24 +61,15 @@ function RegisterPage() {
       setError("Password hazifanani.");
       return;
     }
-    if (usernameTaken(form.username)) {
-      setError("Username au email tayari imetumika.");
-      return;
-    }
     setLoading(true);
-    const account = {
-      ...emptyAccount,
-      fullName: form.name.trim(),
-      username: form.username.trim(),
-      password: form.password,
-      phone: form.phone.trim(),
-      email: form.email.trim(),
-      country: form.country,
-      activated: false,
-    };
-    saveAccount(account);
-    setLoading(false);
-    navigate({ to: "/payment" });
+    try {
+      await registerAccount({ fullName: form.name, username: form.username, phone: form.phone, email: form.email, country: form.country, password: form.password });
+      setLoading(false);
+      navigate({ to: "/payment" });
+    } catch (err) {
+      setLoading(false);
+      setError(err instanceof Error ? err.message : "Usajili umeshindikana.");
+    }
   }
 
   return (
