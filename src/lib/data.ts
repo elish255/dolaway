@@ -39,7 +39,13 @@ export async function signOut(){await backendSignOut();}
 export async function createPayment(phone:string){return rpc("create_activation_payment",{p_phone:phone});}
 export async function getPendingPayment(){const r=await rest<any[]>(`/rest/v1/activation_payments?select=*&order=created_at.desc&limit=1`);return r[0]||null;}
 
-export async function getForeigners(){return rpc<any[]>("get_foreigners",{});}
+export async function getForeigners(){
+  try {
+    const rows = await rpc<any[]>("get_foreigners",{});
+    if (Array.isArray(rows) && rows.length) return rows.map(x => ({...x, tzs:Number(x.tzs ?? x.payout ?? 15000), avatar:x.avatar ?? "", wants:x.wants ?? "Chat"}));
+  } catch {}
+  return chatters;
+}
 export async function getChatSession(slug:string){return rpc<ChatSession>("get_or_create_chat_session",{p_foreigner_slug:slug});}
 export async function getChatMessages(id:string){const r=await rest<any[]>(`/rest/v1/chat_messages?select=id,sender_type,content,created_at&session_id=eq.${id}&order=created_at.asc`);return r.map(x=>({id:x.id,from:x.sender_type==="user"?"me":"them",text:x.content,created_at:x.created_at}));}
 export async function sendChatMessage(id:string,text:string){return rpc("send_chat_message",{p_session_id:id,p_content:text});}
@@ -51,7 +57,7 @@ export async function adminWithdrawals(){return rest<any[]>(`/rest/v1/withdrawal
 export async function reviewPayment(id:string,status:"approved"|"rejected"){return rpc("review_activation_payment",{p_payment_id:id,p_status:status});}
 export const approvePayment=(id:string)=>reviewPayment(id,"approved");
 export const rejectPayment=(id:string)=>reviewPayment(id,"rejected");
-export const fmt=(n:number)=>n.toLocaleString("en-US");
+export const fmt=(n:number)=>Number(n||0).toLocaleString("en-US");
 // ===== DolaWay compatibility exports =====
 
 export const chatters = [
@@ -64,6 +70,9 @@ export const chatters = [
     balance: 0,
     earnings: 0,
     message_count: 0,
+    tzs: 15000,
+    wants: "Chat",
+    emoji: "💬",
   },
   {
     slug: "Priya",
@@ -74,6 +83,9 @@ export const chatters = [
     balance: 0,
     earnings: 0,
     message_count: 0,
+    tzs: 15000,
+    wants: "Chat",
+    emoji: "💬",
   },
   {
     slug: "Felix",
@@ -84,6 +96,9 @@ export const chatters = [
     balance: 0,
     earnings: 0,
     message_count: 0,
+    tzs: 15000,
+    wants: "Chat",
+    emoji: "💬",
   },
   {
     slug: "Harriet",
@@ -94,6 +109,9 @@ export const chatters = [
     balance: 0,
     earnings: 0,
     message_count: 0,
+    tzs: 15000,
+    wants: "Chat",
+    emoji: "💬",
   },
   {
     slug: "Bianca",
@@ -104,6 +122,9 @@ export const chatters = [
     balance: 0,
     earnings: 0,
     message_count: 0,
+    tzs: 15000,
+    wants: "Chat",
+    emoji: "💬",
   },
   {
     slug: "Rosalie",
@@ -114,6 +135,9 @@ export const chatters = [
     balance: 0,
     earnings: 0,
     message_count: 0,
+    tzs: 15000,
+    wants: "Chat",
+    emoji: "💬",
   },
   {
     slug: "Rowan",
@@ -124,6 +148,9 @@ export const chatters = [
     balance: 0,
     earnings: 0,
     message_count: 0,
+    tzs: 15000,
+    wants: "Chat",
+    emoji: "💬",
   },
   {
     slug: "Matilda",
@@ -134,6 +161,9 @@ export const chatters = [
     balance: 0,
     earnings: 0,
     message_count: 0,
+    tzs: 15000,
+    wants: "Chat",
+    emoji: "💬",
   },
   {
     slug: "Thomas",
@@ -144,6 +174,9 @@ export const chatters = [
     balance: 0,
     earnings: 0,
     message_count: 0,
+    tzs: 15000,
+    wants: "Chat",
+    emoji: "💬",
   },
 ];
 
