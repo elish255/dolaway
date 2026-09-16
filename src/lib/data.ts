@@ -10,10 +10,6 @@ import {
 
 export const ACTIVATION_FEE = 14500;
 
-/* =========================================================
-   CHATTERS
-========================================================= */
-
 export type Chatter = {
   slug: string;
   name: string;
@@ -128,10 +124,6 @@ export const chatters: Chatter[] = [
   },
 ];
 
-/* =========================================================
-   ACCOUNT TYPES
-========================================================= */
-
 export type Account = {
   id: string;
   fullName: string;
@@ -176,28 +168,17 @@ export const emptyAccount: Account = {
 const profileSelect =
   "id,full_name,username,email,phone,country,status,role,balance";
 
-/* =========================================================
-   HELPERS
-========================================================= */
-
 function mapAccount(row: Record<string, unknown>): Account {
-  const statusValue = String(row.status ?? "pending");
+  const status =
+    row.status === "approved" || row.status === "rejected"
+      ? row.status
+      : "pending";
 
-  const status: Account["status"] =
-    statusValue === "approved"
-      ? "approved"
-      : statusValue === "rejected"
-        ? "rejected"
-        : "pending";
-
-  const role: Account["role"] =
-    String(row.role ?? "user") === "admin" ? "admin" : "user";
+  const role = row.role === "admin" ? "admin" : "user";
 
   const completed = Array.isArray(row.completed)
     ? row.completed.map(String)
     : [];
-
-  const rawBalance = Number(row.balance ?? 0);
 
   return {
     id: String(row.id ?? ""),
@@ -208,14 +189,10 @@ function mapAccount(row: Record<string, unknown>): Account {
     country: String(row.country ?? ""),
     status,
     role,
-    balance: Number.isFinite(rawBalance) ? rawBalance : 0,
+    balance: Number(row.balance ?? 0) || 0,
     completed,
   };
 }
-
-/* =========================================================
-   LOAD ACCOUNT
-========================================================= */
 
 export async function loadAccount(): Promise<Account> {
   if (!isBackendConfigured()) {
@@ -228,52 +205,111 @@ export async function loadAccount(): Promise<Account> {
     return emptyAccount;
   }
 
-  const userId = session.user.id;
-  const encodedId = encodeURIComponent(userId);
-
   try {
-    const profiles = await rest<Record<string, unknown>[]>(
-      `/rest/v1/profiles?select=${profileSelect}&id=eq.${encodedId}&limit=1`,
+    const id = encodeURIComponent(session.user.id);
+
+    const rows = await rest<Record<string, unknown>[]>(
+      `/rest/v1/profiles?select=${profileSelect}&id=eq.${id}&limit=1`,
     );
 
-    if (!Array.isArray(profiles) || !profiles[0]) {
+    if (!rows[0]) {
       return emptyAccount;
     }
 
-    let completed: string[] = [];
-
-    try {
-      const sessions = await rest<{ foreigner_slug?: string }[]>(
-        `/rest/v1/chat_sessions?select=foreigner_slug&user_id=eq.${encodedId}&status=eq.completed`,
-      );
-
-      if (Array.isArray(sessions)) {
-        completed = sessions
-          .map((item) => String(item.foreigner_slug ?? ""))
-          .filter(Boolean);
-      }
-    } catch (chatError) {
-      console.warn("DolaWay: could not load completed chats", chatError);
-      completed = [];
-    }
+    const completed = await rest<{ foreigner_slug: string }[]>(
+      `/rest/v1/chat_sessions?select=foreigner_slug&user_id=eq.${id}&status=eq.completed`,
+    );
 
     return mapAccount({
-      ...profiles[0],
-      completed,
+      ...rows[0],
+      completed: completed.map((x) => x.foreigner_slug),
     });
-  } catch (error) {
-    console.error("DolaWay loadAccount error:", error);
-
-    /*
-     * Do not crash the whole page if the profile request temporarily fails.
-     */
+  } catch {
     return emptyAccount;
   }
 }
 
-/* =========================================================
-   REGISTER
-========================================================= */
+/**
+ * Converts raw Supabase/PostgreSQL errors into messages
+ * ambazo user anaweza kuelewa.
+ */
+function getRegistrationError(error: unknown): Error {
+  const raw =
+    error instanceof Error
+      ? error.message
+      : String(error ?? "");
+
+  const message = raw.toLowerCase();
+
+  // Username duplicate
+  if (
+    message.includes("profiles_username_key") ||
+    message.includes("duplicate key value") &&
+      message.includes("username") ||
+    message.includes("username already exists") ||
+    message.includes("username has already been taken")
+  ) {
+    return new Error(
+      "Username hii tayari imetumika. Tafadhali chagua username nyingine.",
+    );
+  }
+
+  // Email duplicate
+  if (
+    message.includes("email") &&
+    (
+      message.includes("already registered") ||
+      message.includes("already exists") ||
+      message.includes("duplicate")
+    )
+  ) {
+    return new Error(
+      "Email hii tayari imesajiliwa. Tafadhali tumia email nyingine au ingia kwenye akaunti yako.",
+    );
+  }
+
+  // Phone duplicate
+  if (
+    message.includes("phone") &&
+    (
+      message.includes("duplicate") ||
+      message.includes("already exists") ||
+      message.includes("already used")
+    )
+  ) {
+    return new Error(
+      "Namba hii ya simu tayari imetumika. Tafadhali tumia namba nyingine.",
+    );
+  }
+
+  // Weak password
+  if (
+    message.includes("password") &&
+    (
+      message.includes("weak") ||
+      message.includes("at least") ||
+      message.includes("short")
+    )
+  ) {
+    return new Error(
+      "Password ni dhaifu. Tafadhali tumia password yenye angalau herufi 6.",
+    );
+  }
+
+  // Invalid email
+  if (
+    message.includes("invalid") &&
+    message.includes("email")
+  ) {
+    return new Error(
+      "Email uliyoingiza si sahihi. Tafadhali hakikisha umeandika email vizuri.",
+    );
+  }
+
+  return new Error(
+    "Usajili umeshindikana. Tafadhali hakikisha taarifa zako na ujaribu tena.",
+  );
+}
 
 export async function registerAccount(input: {
   fullName: string;
@@ -287,54 +323,88 @@ export async function registerAccount(input: {
   const username = input.username.trim();
   const email = input.email.trim().toLowerCase();
   const phone = input.phone.trim();
-  const country = input.country.trim();
 
-  const auth = await backendSignUp(email, input.password, {
-    full_name: fullName,
-    username,
-    phone,
-    country,
-  });
+  if (!fullName) {
+    throw new Error("Tafadhali weka jina lako.");
+  }
 
-  if (!auth.access_token) {
+  if (!username) {
+    throw new Error("Tafadhali weka username.");
+  }
+
+  if (username.length < 3) {
     throw new Error(
-      "Akaunti imetengenezwa. Thibitisha email yako kisha login ili kuendelea.",
+      "Username inapaswa kuwa na angalau herufi 3.",
     );
   }
 
-  const userId = auth.user?.id;
-
-  if (userId) {
-    try {
-      await rest(
-        `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}`,
-        {
-          method: "PATCH",
-          headers: {
-            Prefer: "return=minimal",
-          },
-          body: JSON.stringify({
-            full_name: fullName,
-            username,
-            phone,
-            country,
-          }),
-        },
-      );
-    } catch (error) {
-      console.warn(
-        "DolaWay: profile details could not be updated after signup",
-        error,
-      );
-    }
+  if (!/^[a-zA-Z0-9]+$/.test(username)) {
+    throw new Error(
+      "Username itumie herufi na namba tu.",
+    );
   }
 
-  return loadAccount();
-}
+  if (!email) {
+    throw new Error("Tafadhali weka email yako.");
+  }
 
-/* =========================================================
-   SIGN IN
-========================================================= */
+  if (!phone) {
+    throw new Error("Tafadhali weka namba yako ya simu.");
+  }
+
+  if (input.password.length < 6) {
+    throw new Error(
+      "Password inapaswa kuwa na angalau herufi 6.",
+    );
+  }
+
+  try {
+    const auth = await backendSignUp(
+      email,
+      input.password,
+      {
+        full_name: fullName,
+        username,
+        phone,
+        country: input.country,
+      },
+    );
+
+    if (!auth.access_token) {
+      throw new Error(
+        "Akaunti imetengenezwa. Thibitisha email yako kisha login ili kuendelea.",
+      );
+    }
+
+    const userId = auth.user?.id;
+
+    if (userId) {
+      try {
+        await rest(
+          `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}`,
+          {
+            method: "PATCH",
+            headers: {
+              Prefer: "return=minimal",
+            },
+            body: JSON.stringify({
+              full_name: fullName,
+              username,
+              phone,
+              country: input.country,
+            }),
+          },
+        );
+      } catch (error) {
+        throw getRegistrationError(error);
+      }
+    }
+
+    return loadAccount();
+  } catch (error) {
+    throw getRegistrationError(error);
+  }
+}
 
 export async function signIn(
   usernameOrEmail: string,
@@ -347,363 +417,217 @@ export async function signIn(
       return null;
     }
 
-    let email = identifier;
+    const email = identifier.includes("@")
+      ? identifier
+      : await rpc<string | null>(
+          "get_login_email",
+          {
+            p_username: identifier,
+          },
+        );
 
-    /*
-     * User can login using either email or username.
-     */
-    if (!identifier.includes("@")) {
-      email = await rpc<string | null>("get_login_email", {
-        p_username: identifier,
-      });
-
-      if (!email) {
-        return null;
-      }
+    if (!email) {
+      return null;
     }
 
     await backendSignIn(email, password);
 
-    const account = await loadAccount();
-
-    if (!account.id) {
-      return null;
-    }
-
-    return account;
-  } catch (error) {
-    console.error("DolaWay signIn error:", error);
+    return await loadAccount();
+  } catch {
     return null;
   }
 }
-
-/* =========================================================
-   SIGN OUT
-========================================================= */
 
 export async function signOut() {
   await backendSignOut();
 
   if (typeof window !== "undefined") {
-    window.dispatchEvent(new Event("dolaway-account"));
+    window.dispatchEvent(
+      new Event("dolaway-account"),
+    );
   }
 }
 
-/* =========================================================
-   ACTIVATION PAYMENT
-========================================================= */
-
 export async function createPayment(phone: string) {
   return rpc("create_activation_payment", {
-    p_phone: phone.trim(),
+    p_phone: phone,
   });
 }
 
 export async function getPendingPayment() {
-  const session = getSession();
+  const rows = await rest<
+    {
+      id: string;
+      status: string;
+      amount: number;
+    }[]
+  >(
+    `/rest/v1/activation_payments?select=id,status,amount&order=created_at.desc&limit=1`,
+  );
 
-  if (!session?.user?.id) {
-    return null;
-  }
-
-  const userId = encodeURIComponent(session.user.id);
-
-  try {
-    /*
-     * IMPORTANT:
-     * This now loads only the logged-in user's payment.
-     */
-    const rows = await rest<
-      {
-        id: string;
-        status: string;
-        amount: number;
-      }[]
-    >(
-      `/rest/v1/activation_payments?select=id,status,amount&user_id=eq.${userId}&order=created_at.desc&limit=1`,
-    );
-
-    return rows[0] ?? null;
-  } catch (error) {
-    console.error("DolaWay getPendingPayment error:", error);
-    return null;
-  }
+  return rows[0] ?? null;
 }
-
-/* =========================================================
-   FOREIGNERS
-========================================================= */
 
 export async function getForeigners(): Promise<Chatter[]> {
   try {
-    const rows = await rpc<any[]>("get_foreigners", {});
+    const rows = await rpc<any[]>(
+      "get_foreigners",
+      {},
+    );
 
-    if (!Array.isArray(rows) || rows.length === 0) {
+    if (
+      !Array.isArray(rows) ||
+      rows.length === 0
+    ) {
       return chatters;
     }
 
-    return rows.map((row) => ({
-      slug: String(row.slug ?? ""),
-      name: String(row.name ?? row.slug ?? ""),
-      emoji: String(row.emoji ?? "🌍"),
-      avatar: String(row.avatar ?? ""),
-      online: Boolean(row.online),
-      rating: Number(row.rating ?? 0) || 0,
-      minutes: Number(row.minutes ?? 0) || 0,
-      wants: String(row.wants ?? ""),
-      tzs: Number(row.payout ?? 0) || 0,
+    return rows.map((r) => ({
+      slug: String(r.slug),
+      name: String(r.name ?? r.slug),
+      emoji: String(r.emoji ?? "🌍"),
+      avatar: String(r.avatar ?? ""),
+      online: Boolean(r.online),
+      rating: Number(r.rating ?? 0),
+      minutes: Number(r.minutes ?? 0),
+      wants: String(r.wants ?? ""),
+      tzs: Number(r.payout ?? 0) || 0,
     }));
-  } catch (error) {
-    console.warn("DolaWay getForeigners fallback:", error);
+  } catch {
     return chatters;
   }
 }
 
-/* =========================================================
-   CHAT SESSION
-========================================================= */
-
 export async function getChatSession(
   slug: string,
-): Promise<ChatSession> {
-  return rpc<ChatSession>("get_or_create_chat_session", {
-    p_foreigner_slug: slug,
-  });
+) {
+  return rpc<ChatSession>(
+    "get_or_create_chat_session",
+    {
+      p_foreigner_slug: slug,
+    },
+  );
 }
-
-/* =========================================================
-   CHAT MESSAGES
-========================================================= */
 
 export async function getChatMessages(
   sessionId: string,
-): Promise<ChatMessage[]> {
-  const encodedId = encodeURIComponent(sessionId);
+) {
+  const id = encodeURIComponent(sessionId);
 
   const rows = await rest<any[]>(
-    `/rest/v1/chat_messages?select=id,sender_type,content,created_at&session_id=eq.${encodedId}&order=created_at.asc`,
+    `/rest/v1/chat_messages?select=id,sender_type,content,created_at&session_id=eq.${id}&order=created_at.asc`,
   );
 
-  if (!Array.isArray(rows)) {
-    return [];
-  }
-
-  return rows.map((row) => ({
-    id: String(row.id ?? ""),
-    from: row.sender_type === "user" ? "me" : "them",
-    text: String(row.content ?? ""),
-    created_at: String(row.created_at ?? ""),
-  }));
+  return rows.map((x) => ({
+    id: String(x.id),
+    from:
+      x.sender_type === "user"
+        ? "me"
+        : "them",
+    text: String(x.content ?? ""),
+    created_at: String(
+      x.created_at ?? "",
+    ),
+  })) as ChatMessage[];
 }
-
-/* =========================================================
-   SEND CHAT MESSAGE
-========================================================= */
 
 export async function sendChatMessage(
   sessionId: string,
   text: string,
-): Promise<ChatSession> {
-  const message = text.trim();
-
-  if (!message) {
-    throw new Error("Ujumbe hauwezi kuwa tupu.");
-  }
-
-  return rpc<ChatSession>("send_chat_message", {
-    p_session_id: sessionId,
-    p_content: message,
-  });
+) {
+  return rpc<ChatSession>(
+    "send_chat_message",
+    {
+      p_session_id: sessionId,
+      p_content: text,
+    },
+  );
 }
 
-/* =========================================================
-   COMPLETE CHAT
-========================================================= */
-
-export async function completeChat(sessionId: string) {
-  const encodedId = encodeURIComponent(sessionId);
-
+export async function completeChat(
+  sessionId: string,
+) {
   try {
-    /*
-     * Database itself completes and rewards the chat at message 20.
-     * We only read the current session here.
-     */
-    const rows = await rest<ChatSession[]>(
-      `/rest/v1/chat_sessions?select=id,foreigner_slug,payout,message_count,status&id=eq.${encodedId}&limit=1`,
-    );
+    const sessions = await rpc<
+      ChatSession[]
+    >("get_my_chat_sessions", {});
 
-    return rows[0] ?? null;
-  } catch (error) {
-    console.error("DolaWay completeChat error:", error);
+    return (
+      sessions.find(
+        (s) => s.id === sessionId,
+      ) ?? null
+    );
+  } catch {
     return null;
   }
 }
-
-/* =========================================================
-   WITHDRAWAL
-========================================================= */
 
 export async function createWithdrawal(
   amount: number,
   phone: string,
 ) {
-  const value = Number(amount);
-
-  if (!Number.isFinite(value) || value <= 0) {
-    throw new Error("Kiasi cha withdrawal si sahihi.");
-  }
-
-  if (!phone.trim()) {
-    throw new Error("Weka namba ya simu.");
-  }
-
-  return rpc<{ balance: number }>("request_withdrawal", {
-    p_amount: value,
-    p_phone: phone.trim(),
-  });
+  return rpc<{ balance: number }>(
+    "request_withdrawal",
+    {
+      p_amount: amount,
+      p_phone: phone,
+    },
+  );
 }
 
 export async function getWithdrawals() {
-  try {
-    return await rest<Record<string, unknown>[]>(
-      `/rest/v1/withdrawals?select=*&order=created_at.desc`,
-    );
-  } catch (error) {
-    console.error("DolaWay getWithdrawals error:", error);
-    return [];
-  }
+  return rest<
+    Record<string, unknown>[]
+  >(
+    `/rest/v1/withdrawals?select=*&order=created_at.desc`,
+  );
 }
 
-/* =========================================================
-   ADMIN - USERS
-========================================================= */
-
 export async function adminUsers() {
-  return rest<Record<string, unknown>[]>(
+  return rest<
+    Record<string, unknown>[]
+  >(
     `/rest/v1/profiles?select=${profileSelect}&order=created_at.desc`,
   );
 }
 
-/* =========================================================
-   ADMIN - PAYMENTS
-========================================================= */
-
 export async function adminPayments() {
-  /*
-   * IMPORTANT FIX:
-   *
-   * Do NOT use:
-   *
-   * select=*,profiles(...)
-   *
-   * because Supabase found multiple relationships between
-   * activation_payments and profiles.
-   *
-   * We fetch payments first, then fetch profiles separately.
-   * This completely avoids the relationship ambiguity.
-   */
-
-  const payments = await rest<Record<string, any>[]>(
+  return rest<
+    Record<string, unknown>[]
+  >(
     `/rest/v1/activation_payments?select=*&order=created_at.desc`,
   );
-
-  if (!Array.isArray(payments) || payments.length === 0) {
-    return [];
-  }
-
-  const userIds = Array.from(
-    new Set(
-      payments
-        .map((payment) => String(payment.user_id ?? ""))
-        .filter(Boolean),
-    ),
-  );
-
-  if (userIds.length === 0) {
-    return payments;
-  }
-
-  const profileResults: Record<string, any>[] = [];
-
-  /*
-   * Fetch profiles one by one.
-   * This is intentionally simple and avoids all PostgREST
-   * relationship/embedding ambiguity.
-   */
-  for (const userId of userIds) {
-    try {
-      const rows = await rest<Record<string, any>[]>(
-        `/rest/v1/profiles?select=id,full_name,username,email,phone,country,status,role,balance&id=eq.${encodeURIComponent(userId)}&limit=1`,
-      );
-
-      if (rows[0]) {
-        profileResults.push(rows[0]);
-      }
-    } catch (error) {
-      console.warn(
-        "DolaWay: could not load payment profile",
-        userId,
-        error,
-      );
-    }
-  }
-
-  const profileMap = new Map(
-    profileResults.map((profile) => [
-      String(profile.id),
-      profile,
-    ]),
-  );
-
-  return payments.map((payment) => ({
-    ...payment,
-    profiles:
-      profileMap.get(String(payment.user_id ?? "")) ?? null,
-  }));
 }
-
-/* =========================================================
-   ADMIN - WITHDRAWALS
-========================================================= */
 
 export async function adminWithdrawals() {
   return getWithdrawals();
 }
 
-/* =========================================================
-   ADMIN - APPROVE PAYMENT
-========================================================= */
-
-export async function approvePayment(paymentId: string) {
-  return rpc("review_activation_payment", {
-    p_payment_id: paymentId,
-    p_status: "approved",
-  });
+export async function approvePayment(
+  paymentId: string,
+) {
+  return rpc(
+    "review_activation_payment",
+    {
+      p_payment_id: paymentId,
+      p_status: "approved",
+    },
+  );
 }
 
-/* =========================================================
-   ADMIN - REJECT PAYMENT
-========================================================= */
-
-export async function rejectPayment(paymentId: string) {
-  return rpc("review_activation_payment", {
-    p_payment_id: paymentId,
-    p_status: "rejected",
-  });
+export async function rejectPayment(
+  paymentId: string,
+) {
+  return rpc(
+    "review_activation_payment",
+    {
+      p_payment_id: paymentId,
+      p_status: "rejected",
+    },
+  );
 }
-
-/* =========================================================
-   NUMBER FORMATTER
-========================================================= */
 
 export const fmt = (
-  value: number | string | null | undefined,
-): string => {
-  const numberValue = Number(value ?? 0);
-
-  if (!Number.isFinite(numberValue)) {
-    return "0";
-  }
-
-  return numberValue.toLocaleString("en-US");
-};
+  n: number | null | undefined,
+) =>
+  Number(n ?? 0).toLocaleString("en-US");
