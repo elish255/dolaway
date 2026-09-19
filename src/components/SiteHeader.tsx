@@ -20,9 +20,12 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b-2 border-primary bg-brand-deep">
       <div className="mx-auto flex max-w-lg items-center gap-2 px-3 py-2.5">
-        <Link to="/" className="shrink-0 rounded-md bg-brand px-2 py-1 text-[10px] font-black leading-tight text-brand-foreground">
-          Dola<span className="text-primary">Way</span>
-          <span className="block text-[6px] font-medium tracking-widest opacity-70">MAKE MONEY</span>
+        <Link to="/" aria-label="DolaWay home" className="shrink-0 rounded-md bg-white/95 px-1.5 py-1">
+          <img
+            src="/logo.png"
+            alt="Moxera Agencies"
+            className="h-9 w-[88px] object-contain"
+          />
         </Link>
         <div className="flex items-center gap-1.5 rounded-full border border-primary/50 px-2.5 py-1.5">
           <span className="size-1.5 animate-pulse rounded-full bg-primary" />

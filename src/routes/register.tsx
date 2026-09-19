@@ -78,7 +78,7 @@ function RegisterPage() {
         <div className="k-card grid grid-cols-1 lg:grid-cols-12">
           <aside className="hidden bg-k-dark p-10 text-white lg:col-span-5 lg:flex lg:flex-col">
             <div className="mb-10 inline-flex w-fit rounded-xl bg-white px-3 py-2">
-              <img src="/favicon-192x192.png" alt="DOLLAWAY SITE" className="h-8 w-auto object-contain" />
+              <img src="/logo.png" alt="Moxera Agencies" className="h-10 w-auto max-w-[150px] object-contain" />
             </div>
             <h2 className="text-2xl font-bold">Join our community</h2>
             <p className="mt-3 text-sm text-white/60">
