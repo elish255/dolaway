@@ -1,141 +1,28 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, Copy, Loader2, ShieldCheck, Smartphone, Clock3 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, CheckCircle2, Loader2, Smartphone, Copy, ShieldCheck, Clock3 } from "lucide-react";
-import { createAutomaticPayment, checkAutomaticPayment } from "@/lib/automatic-payment.functions";
+import { ACTIVATION_FEE, LIPA_BUSINESS, LIPA_NUMBER, loadRegistration } from "@/lib/session";
+import { createAutoPayment, checkAutoPayment } from "@/lib/payment.functions";
 import { getMe, submitManualPayment } from "@/lib/app.functions";
 
-export const Route = createFileRoute("/payment")({
-  component: Lipa,
-  head: () => ({ meta: [
-    { title: "Activation Payment — DOLAWAY" },
-    { name: "description", content: `Lipa activation fee ya TZS ${ACTIVATION_FEE.toLocaleString()} kupitia malipo ya moja kwa moja au Lipa Namba.` },
-    { name: "robots", content: "noindex, nofollow" },
-  ] }),
-});
-
-function normalize(phone: string) {
-  const d = phone.replace(/\D/g, "");
-  if (d.startsWith("255")) return d;
-  if (d.startsWith("0")) return `255${d.slice(1)}`;
-  return d.length === 9 ? `255${d}` : d;
-}
-
-const ACTIVATION_FEE = Number(import.meta.env.VITE_ACTIVATION_FEE || "15000");
-const LIPA_NUMBER = import.meta.env.VITE_LIPA_NUMBER || "251161660";
-const LIPA_BUSINESS = import.meta.env.VITE_LIPA_BUSINESS || "DOLAWAY";
-
-function Lipa() {
-  const navigate = useNavigate();
-  const createPayment = useServerFn(createAutomaticPayment);
-  const checkPayment = useServerFn(checkAutomaticPayment);
-  const manualPayment = useServerFn(submitManualPayment);
-  const me = useServerFn(getMe);
-  const [phone, setPhone] = useState("");
-  const [method, setMethod] = useState<"automatic" | "lipa_namba">("automatic");
-  const [orderId, setOrderId] = useState("");
-  const [status, setStatus] = useState("PENDING");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
-  const [manualSent, setManualSent] = useState(false);
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      void me().then((res) => {
-        if (res.user?.status === "active") void navigate({ to: "/dashboard" });
-      }).catch(() => undefined);
-    }, 5000);
-    return () => window.clearInterval(timer);
-  }, [me, navigate]);
-
-  useEffect(() => {
-    void me().then((res) => { if (res.user?.status === "active") void navigate({ to: "/dashboard" }); if (res.user?.phone) setPhone(String(res.user.phone)); }).catch(() => undefined);
-  }, [me, navigate]);
-
-  useEffect(() => {
-    if (!orderId) return;
-    let tries = 0;
-    const poll = async () => {
-      tries += 1;
-      try {
-        const res = await checkPayment({ data: { orderId } });
-        setStatus(res.status);
-        if (res.status === "SUCCESS") { if (timer.current) clearInterval(timer.current); await navigate({ to: "/dashboard" }); }
-        if (res.status === "FAILED") { if (timer.current) clearInterval(timer.current); setError("Malipo hayajakamilika. Jaribu tena."); }
-      } catch { /* subiri poll inayofuata */ }
-      if (tries >= 60 && timer.current) clearInterval(timer.current);
-    };
-    timer.current = setInterval(poll, 5000);
-    void poll();
-    return () => { if (timer.current) clearInterval(timer.current); };
-  }, [orderId, checkPayment, navigate]);
-
-  async function startAutomaticPayment(e: React.FormEvent) {
-    e.preventDefault(); setError(""); setMessage("");
-    const msisdn = normalize(phone);
-    if (!/^255\d{9}$/.test(msisdn)) { setError("Weka namba sahihi, mfano 0712345678."); return; }
-    setLoading(true);
-    try {
-      const res = await createPayment({ data: { phone: msisdn } });
-      if (res.orderId === "already-active") { await navigate({ to: "/dashboard" }); return; }
-      setOrderId(res.orderId); setStatus("PENDING"); setMessage(res.message);
-    } catch (err) { setError(err instanceof Error ? err.message : "Imeshindwa kuanzisha malipo."); }
-    finally { setLoading(false); }
-  }
-
-  async function submitManual(e: React.FormEvent) {
-    e.preventDefault(); setError(""); setMessage("");
-    const msisdn = normalize(phone);
-    if (!/^255\d{9}$/.test(msisdn)) { setError("Weka namba sahihi, mfano 0712345678."); return; }
-    setLoading(true);
-    try { await manualPayment({ data: { phone: msisdn } }); setManualSent(true); setMessage("Taarifa imetumwa kwa admin. Subiri uthibitisho wa muamala."); }
-    catch (err) { setError(err instanceof Error ? err.message : "Imeshindikana kutuma taarifa."); }
-    finally { setLoading(false); }
-  }
-
-  async function copyNumber() { try { await navigator.clipboard.writeText(LIPA_NUMBER); setMessage("Lipa Namba ime-copyiwa."); } catch { /* ignore */ } }
-
-  return (
-    <main className="min-h-screen bg-background px-4 py-8">
-      <div className="mx-auto w-full max-w-xl">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm font-semibold text-primary"><ArrowLeft className="h-4 w-4" /> Rudi mwanzo</Link>
-        <div className="mt-4 rounded-3xl bg-card p-5 shadow-card sm:p-6">
-          <img src="/logo.png" alt="DOLAWAY" className="mx-auto h-20 w-full object-contain" />
-          <h1 className="mt-2 text-center text-2xl font-extrabold text-foreground">Activation Fee TZS {ACTIVATION_FEE.toLocaleString()}</h1>
-          <p className="mt-2 text-center text-sm text-muted-foreground">Chagua njia moja ya malipo hapa chini.</p>
-
-          <div className="mt-5 grid grid-cols-2 gap-2 rounded-2xl bg-secondary p-1">
-            <button type="button" onClick={() => setMethod("automatic")} className={`rounded-xl px-3 py-3 text-sm font-extrabold ${method === "automatic" ? "bg-card text-primary shadow-card" : "text-muted-foreground"}`}>Malipo ya Moja kwa Moja</button>
-            <button type="button" onClick={() => setMethod("lipa_namba")} className={`rounded-xl px-3 py-3 text-sm font-extrabold ${method === "lipa_namba" ? "bg-card text-primary shadow-card" : "text-muted-foreground"}`}>Lipa Namba</button>
-          </div>
-
-          {method === "automatic" ? (
-            <form onSubmit={startAutomaticPayment} className="mt-5 space-y-4">
-              <div><label className="text-sm font-semibold text-foreground">Namba ya simu</label><input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0712345678" className="mt-1 w-full rounded-xl bg-secondary px-4 py-3 text-sm text-foreground outline-none" /></div>
-              <div className="rounded-2xl bg-secondary p-4 text-sm text-muted-foreground"><strong className="text-foreground">Malipo ya moja kwa moja:</strong> bonyeza LIPA SASA, kisha thibitisha push kwenye simu yako. Mfumo utaangalia order status na account ita-activate moja kwa moja ikipatikana malipo yaliyofanikiwa.</div>
-              {error && <p className="rounded-xl bg-destructive/10 p-3 text-sm font-semibold text-destructive">{error}</p>}
-              {message && <p className="rounded-xl bg-success/10 p-3 text-sm font-semibold text-success">{message}</p>}
-              <button type="submit" disabled={loading || !!orderId} className="flex w-full items-center justify-center gap-2 rounded-full gradient-success py-3.5 font-bold text-success-foreground shadow-cta disabled:opacity-60">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Smartphone className="h-4 w-4" />}{orderId ? "INASUBIRI UTHIBITISHO..." : "LIPA SASA"}</button>
-              {orderId && <div className="rounded-2xl border border-border p-4 text-center"><Clock3 className="mx-auto h-7 w-7 animate-pulse text-primary" /><p className="mt-2 text-sm font-bold text-foreground">Subiri uthibitisho wa malipo</p><p className="mt-1 text-xs text-muted-foreground">Order: {orderId} · Status: {status}</p></div>}
-            </form>
-          ) : (
-            <div className="mt-5 space-y-4">
-              <div className="rounded-3xl gradient-blue p-5 text-center text-primary-foreground shadow-cta"><p className="text-xs font-bold uppercase tracking-widest opacity-80">LIPA NAMBA</p><div className="mt-1 text-3xl font-black tracking-wider">{LIPA_NUMBER}</div><p className="mt-1 text-sm font-semibold">{LIPA_BUSINESS}</p><button type="button" onClick={copyNumber} className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-xs font-bold"><Copy className="h-4 w-4" /> Copy</button></div>
-              <div className="rounded-2xl bg-secondary p-4"><p className="font-extrabold text-foreground">Kiasi: TZS {ACTIVATION_FEE.toLocaleString()}</p><p className="mt-2 text-sm text-muted-foreground">Lipa kwa M-Pesa, Mixx by Yas, Airtel Money au HaloPesa kwa kutumia Lipa Namba hapo juu.</p></div>
-              <div className="space-y-2">{[
-                [`Vodacom M-Pesa`, `*150*00# → Lipa kwa M-PESA → Lipa kwa simu → weka ${LIPA_NUMBER} → ${ACTIVATION_FEE.toLocaleString()}`],
-                [`Mixx by Yas`, `*150*01# → Lipa kwa simu → mitandao mingine → HaloPesa → ${LIPA_NUMBER} → ${ACTIVATION_FEE.toLocaleString()}`],
-                [`Airtel Money`, `*150*60# → Lipia Bili → Lipa kwa simu → HaloPesa → kumbukumbu ${LIPA_NUMBER} → ${ACTIVATION_FEE.toLocaleString()}`],
-                [`HaloPesa`, `*150*88# → Lipia Bidhaa → HaloPesa → ${LIPA_NUMBER} → ${ACTIVATION_FEE.toLocaleString()}`],
-              ].map(([name, steps]) => <div key={name} className="rounded-2xl border border-border bg-card p-4"><p className="font-bold text-foreground">{name}</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{steps}</p></div>)}</div>
-              <form onSubmit={submitManual} className="space-y-3 rounded-2xl border border-border p-4"><label className="text-sm font-semibold text-foreground">Baada ya kulipa, weka namba uliyotumia</label><input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0712345678" className="w-full rounded-xl bg-secondary px-4 py-3 text-sm text-foreground outline-none" />{error && <p className="text-sm font-semibold text-destructive">{error}</p>}{message && <p className="text-sm font-semibold text-success">{message}</p>}<button type="submit" disabled={loading || manualSent} className="w-full rounded-full gradient-success py-3.5 font-bold text-success-foreground shadow-cta disabled:opacity-60">{manualSent ? "IMETUMWA KWA ADMIN" : loading ? "INATUMA..." : "NIMELIPIA"}</button></form>
-              <div className="flex items-start gap-2 rounded-2xl bg-secondary p-4 text-xs text-muted-foreground"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Admin atathibitisha muamala. Baada ya approval, utaweza kuingia Dashboard moja kwa moja.</div>
-            </div>
-          )}
-        </div>
-      </div>
-    </main>
-  );
+export const Route=createFileRoute("/payment")({component:PaymentPage,head:()=>({meta:[{title:"Lipa — DOLAWAY"},{name:"robots",content:"noindex,nofollow"}]})});
+type Operator={id:string;name:string;ussd:string;steps:string[]};
+const operators:Operator[]=[
+ {id:"voda",name:"Vodacom M-Pesa",ussd:"*150*00#",steps:["Bonyeza *150*00#","Chagua Lipa kwa M-PESA","Chagua Lipa kwa simu","Weka LIPA NAMBA",`Weka kiasi {{AMOUNT}} TZS`,`Weka namba ya siri`]},
+ {id:"mixx",name:"Mixx by Yas",ussd:"*150*01#",steps:["Bonyeza *150*01#","Chagua Lipa kwa simu","Chagua mitandao mingine","Chagua HaloPesa","Weka LIPA NAMBA",`Weka kiasi {{AMOUNT}} TZS`,`Weka namba ya siri`]},
+ {id:"airtel",name:"Airtel Money",ussd:"*150*60#",steps:["Bonyeza *150*60#","Chagua Lipia Bili","Chagua Lipa kwa simu","Weka LIPA NAMBA",`Weka kiasi {{AMOUNT}} TZS`,`Ingiza kumbukumbu ya malipo`,`Ingiza namba ya siri`]},
+ {id:"halo",name:"HaloPesa",ussd:"*150*88#",steps:["Bonyeza *150*88#","Chagua Lipia Bidhaa","Chagua HaloPesa","Weka LIPA NAMBA",`Weka kiasi {{AMOUNT}} TZS`,`Ingiza namba ya siri`]},
+];
+function normalize(p:string){const d=p.replace(/\D/g,"");if(d.startsWith("255"))return d;if(d.startsWith("0"))return `255${d.slice(1)}`;return d.length===9?`255${d}`:d;}
+function PaymentPage(){const navigate=useNavigate();const auto=useServerFn(createAutoPayment);const check=useServerFn(checkAutoPayment);const me=useServerFn(getMe);const manual=useServerFn(submitManualPayment);const [phone,setPhone]=useState("");const [tab,setTab]=useState<"auto"|"manual">("auto");const [order,setOrder]=useState("");const [status,setStatus]=useState("PENDING");const [error,setError]=useState("");const [message,setMessage]=useState("");const [sent,setSent]=useState(false);const [loading,setLoading]=useState(false);const timer=useRef<ReturnType<typeof setInterval>|null>(null);const [copied,setCopied]=useState(false);
+ useEffect(()=>{const r=loadRegistration();if(r?.phone)setPhone(r.phone);void me().then(x=>{if(x.user?.status==="active")navigate({to:"/dashboard"});else if(x.user?.phone&&!r?.phone)setPhone(String(x.user.phone));}).catch(()=>navigate({to:"/register"}));},[me,navigate]);
+ useEffect(()=>{if(!order)return;const poll=async()=>{try{const r=await check({data:{orderId:order}});setStatus(r.status);if(r.status==="SUCCESS"){if(timer.current)clearInterval(timer.current);await navigate({to:"/dashboard"})}else if(r.status==="FAILED"){if(timer.current)clearInterval(timer.current);setError("Malipo hayajakamilika. Jaribu tena au tumia Lipa Namba.")}}catch{}};timer.current=setInterval(poll,5000);void poll();return()=>{if(timer.current)clearInterval(timer.current)}},[order,check,navigate]);
+ async function start(e:React.FormEvent){e.preventDefault();setError("");setMessage("");const msisdn=normalize(phone);if(!/^255\d{9}$/.test(msisdn)){setError("Weka namba sahihi, mfano 0712345678.");return}setLoading(true);try{const r=await auto({data:{phone:msisdn}});if(r.orderId==="already-active"){navigate({to:"/dashboard"});return}setOrder(r.orderId);setStatus("PENDING");setMessage("Payment request initiated. Thibitisha kwenye simu yako.")}catch(e){setError(e instanceof Error&&e.message==="AUTO_PAYMENT_NOT_CONFIGURED"?"Malipo ya moja kwa moja hayapatikani kwa sasa. Tumia Lipa Namba.":"Malipo ya moja kwa moja hayakuanzishwa. Tumia Lipa Namba kama njia mbadala.")}finally{setLoading(false)}}
+ async function submit(e:React.FormEvent){e.preventDefault();setError("");setMessage("");const msisdn=normalize(phone);if(!/^255\d{9}$/.test(msisdn)){setError("Weka namba sahihi, mfano 0712345678.");return}setLoading(true);try{await manual({data:{phone:msisdn}});setSent(true);setMessage("Taarifa imetumwa kwa admin. Subiri uthibitisho wa muamala.")}catch(e){setError("Imeshindikana kutuma taarifa. Jaribu tena.")}finally{setLoading(false)}}
+ async function copy(){try{await navigator.clipboard.writeText(LIPA_NUMBER);setCopied(true);setTimeout(()=>setCopied(false),1500)}catch{}}
+ return <main className="min-h-screen bg-background px-4 py-7"><div className="mx-auto max-w-xl"><Link to="/" className="inline-flex items-center gap-2 text-sm font-semibold text-primary"><ArrowLeft className="h-4 w-4"/> Rudi mwanzo</Link><div className="mt-4 rounded-3xl bg-card p-5 shadow-card sm:p-6"><img src="/logo.png" alt="DOLAWAY" className="mx-auto h-20 w-auto max-w-[180px] object-contain"/><h1 className="mt-2 text-center text-2xl font-extrabold">Activation Fee TZS {ACTIVATION_FEE.toLocaleString()}</h1><p className="mt-2 text-center text-sm text-muted-foreground">Chagua njia moja ya malipo hapa chini.</p>
+ <div className="mt-5 grid grid-cols-2 gap-2 rounded-2xl bg-secondary p-1"><button type="button" onClick={()=>setTab("auto")} className={`rounded-xl px-3 py-3 text-sm font-extrabold ${tab==="auto"?"bg-card text-primary shadow-card":"text-muted-foreground"}`}>Malipo ya Moja kwa Moja</button><button type="button" onClick={()=>setTab("manual")} className={`rounded-xl px-3 py-3 text-sm font-extrabold ${tab==="manual"?"bg-card text-primary shadow-card":"text-muted-foreground"}`}>Lipa Namba</button></div>
+ {tab==="auto"?<form onSubmit={start} className="mt-5 space-y-4"><label className="text-sm font-semibold">Namba ya simu<input required value={phone} onChange={e=>setPhone(e.target.value)} placeholder="0712345678" className="mt-1 w-full rounded-xl bg-secondary px-4 py-3 text-sm outline-none"/></label><div className="rounded-2xl bg-secondary p-4 text-sm text-muted-foreground"><b className="text-foreground">Malipo ya moja kwa moja:</b> bonyeza LIPA SASA, thibitisha push kwenye simu yako. Account ita-activate yenyewe malipo yakikamilika.</div>{error&&<p className="rounded-xl bg-destructive/10 p-3 text-sm font-semibold text-destructive">{error}</p>}{message&&<p className="rounded-xl bg-success/10 p-3 text-sm font-semibold text-success">{message}</p>}<button disabled={loading||!!order} className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 font-bold text-primary-foreground disabled:opacity-60">{loading?<Loader2 className="h-4 w-4 animate-spin"/>:<Smartphone className="h-4 w-4"/>}{order?"INASUBIRI UTHIBITISHO...":"LIPA SASA"}</button>{order&&<div className="rounded-2xl border p-4 text-center"><Clock3 className="mx-auto h-7 w-7 animate-pulse text-primary"/><p className="mt-2 text-sm font-bold">Subiri uthibitisho wa malipo</p><p className="mt-1 text-xs text-muted-foreground">Status: {status}</p></div>}</form>:<div className="mt-5 space-y-4"><div className="rounded-3xl bg-primary p-5 text-center text-primary-foreground shadow-lg"><p className="text-xs font-bold uppercase tracking-widest opacity-80">LIPA NAMBA</p><div className="mt-1 text-3xl font-black tracking-wider">{LIPA_NUMBER}</div><p className="mt-1 text-sm font-semibold">{LIPA_BUSINESS}</p><button type="button" onClick={copy} className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-xs font-bold"><Copy className="h-4 w-4"/>{copied?"Copied":"Copy"}</button></div><div className="rounded-2xl bg-secondary p-4"><p className="font-extrabold">Kiasi: TZS {ACTIVATION_FEE.toLocaleString()}</p><p className="mt-2 text-sm text-muted-foreground">Lipa kwa M-Pesa, Mixx by Yas, Airtel Money au HaloPesa kwa kutumia Lipa Namba hapo juu.</p></div><div className="space-y-2">{operators.map(o=><div key={o.id} className="rounded-2xl border bg-card p-4"><p className="font-bold">{o.name}</p><p className="mt-1 text-xs font-semibold text-primary">{o.ussd}</p><ol className="mt-2 space-y-1 text-xs text-muted-foreground">{o.steps.map((s,i)=><li key={i}>{i+1}. {s.replace("{{AMOUNT}}",ACTIVATION_FEE.toLocaleString())}</li>)}</ol></div>)}</div><form onSubmit={submit} className="space-y-3 rounded-2xl border p-4"><label className="text-sm font-semibold">Baada ya kulipa, weka namba uliyotumia<input required value={phone} onChange={e=>setPhone(e.target.value)} placeholder="0712345678" className="mt-1 w-full rounded-xl bg-secondary px-4 py-3 text-sm outline-none"/></label>{error&&<p className="text-sm font-semibold text-destructive">{error}</p>}{message&&<p className="text-sm font-semibold text-success">{message}</p>}<button disabled={loading||sent} className="w-full rounded-full bg-success py-3.5 font-bold text-success-foreground">{sent?"IMETUMWA KWA ADMIN":loading?"INATUMA...":"NIMELIPIA"}</button></form><div className="flex items-start gap-2 rounded-2xl bg-secondary p-4 text-xs text-muted-foreground"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-success"/> Admin atathibitisha muamala wa Lipa Namba. Baada ya approval utaingia Dashboard.</div></div>}
+ </div></div></main>
 }

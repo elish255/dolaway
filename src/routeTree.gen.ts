@@ -42,12 +42,12 @@ const SigninRoute = SigninRouteImport.update({
   path: '/signin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminRoute = AdminRouteImport.update({ id: '/admin', path: '/admin', getParentRoute: () => rootRouteImport } as any)
 const ChatSlugRoute = ChatSlugRouteImport.update({
   id: '/chat/$slug',
   path: '/chat/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({ id: '/admin', path: '/admin', getParentRoute: () => rootRouteImport } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -131,13 +131,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SigninRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/chat/$slug': {
       id: '/chat/$slug'
       path: '/chat/$slug'
@@ -145,6 +138,7 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': { id: '/admin', path: '/admin', fullPath: '/admin', preLoaderRoute: typeof AdminRouteImport, parentRoute: typeof rootRouteImport }
   }
 }
 
