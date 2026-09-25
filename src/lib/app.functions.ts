@@ -9,7 +9,64 @@ const registrationSchema=z.object({name:z.string().trim().min(3).max(80),usernam
 function normalizePhone(raw:string){const d=raw.replace(/\D/g,"");if(d.startsWith("255"))return d;if(d.startsWith("0"))return `255${d.slice(1)}`;return d.length===9?`255${d}`:d;}
 function tableUser(id:string){return supabaseRest<Array<Record<string,unknown>>>("dolaway_users",{query:{select:"id,name,username,email,phone,country,status,role,balance,withdrawn,created_at,activated_at",id:`eq.${id}`,limit:1}});}
 
-export const registerUser=createServerFn({method:"POST"}).validator(registrationSchema).handler(async({data})=>{const username=data.username.toLowerCase();const email=data.email.toLowerCase();const phone=normalizePhone(data.phone);const existing=await supabaseRest<Array<Record<string,unknown>>>("dolaway_users",{query:{select:"id,username,email,phone",or:`(username.eq.${username},email.eq.${email},phone.eq.${phone})`,limit:1}});if(existing.length){const r=existing[0]??{};if(String(r.username??"").toLowerCase()===username)throw new Error("USERNAME_EXISTS");throw new Error("EMAIL_OR_PHONE_EXISTS");}const {hash,salt}=await hashPassword(data.password);const created=await supabaseRest<Array<Record<string,unknown>>>("dolaway_users",{method:"POST",body:{name:data.name,username,email,phone,country:data.country,password_hash:hash,password_salt:salt,status:"pending",role:"user",balance:0,withdrawn:0}});const user=created[0];if(!user?.id)throw new Error("REGISTRATION_FAILED");await setSession({userId:String(user.id),role:"user"});return{id:String(user.id),status:"pending",activationFee:Number(process.env.ACTIVATION_FEE||process.env.VITE_ACTIVATION_FEE||"14500")};});
+export const registerUser=createServerFn({method:"POST"}).validator(registrationSchema).handler(async({data})=>{
+  const app="dolaway";
+  const log=(stage:string,details:unknown)=>console.error(`[${app}][REGISTRATION] ${stage}`,details);
+  const username=data.username.toLowerCase();
+  const email=data.email.toLowerCase();
+  const phone=normalizePhone(data.phone);
+  log("start",{username,email,phone:`${phone.slice(0,3)}******${phone.slice(-2)}`,country:data.country});
+
+  let existing:Array<Record<string,unknown>>;
+  try{
+    existing=await supabaseRest<Array<Record<string,unknown>>>("dolaway_users",{query:{select:"id,username,email,phone",or:`(username.eq.${username},email.eq.${email},phone.eq.${phone})`,limit:1}});
+    log("existing-check-ok",{count:existing.length});
+  }catch(err){
+    log("existing-check-db-error",err instanceof Error?err.message:err);
+    throw new Error(`REGISTRATION_DB_EXISTING_CHECK_FAILED:${err instanceof Error?err.message:"UNKNOWN"}`);
+  }
+
+  if(existing.length){
+    const r=existing[0]??{};
+    if(String(r.username??"").toLowerCase()===username)throw new Error("USERNAME_EXISTS");
+    if(String(r.email??"").toLowerCase()===email)throw new Error("EMAIL_EXISTS");
+    throw new Error("PHONE_EXISTS");
+  }
+
+  let hash:string,salt:string;
+  try{
+    const result=await hashPassword(data.password);
+    hash=result.hash;salt=result.salt;
+  }catch(err){
+    log("password-hash-error",err instanceof Error?err.message:err);
+    throw new Error("REGISTRATION_PASSWORD_HASH_FAILED");
+  }
+
+  let created:Array<Record<string,unknown>>;
+  try{
+    created=await supabaseRest<Array<Record<string,unknown>>>("dolaway_users",{method:"POST",body:{name:data.name,username,email,phone,country:data.country,password_hash:hash,password_salt:salt,status:"pending",role:"user",balance:0,withdrawn:0}});
+    log("insert-ok",{count:created.length,id:created[0]?.id??null});
+  }catch(err){
+    log("insert-db-error",err instanceof Error?err.message:err);
+    throw new Error(`REGISTRATION_DB_INSERT_FAILED:${err instanceof Error?err.message:"UNKNOWN"}`);
+  }
+
+  const user=created[0];
+  if(!user?.id){
+    log("insert-empty-response",created);
+    throw new Error("REGISTRATION_EMPTY_RESPONSE");
+  }
+
+  try{
+    await setSession({userId:String(user.id),role:"user"});
+    log("session-ok",{userId:String(user.id)});
+  }catch(err){
+    log("session-error-after-registration",err instanceof Error?err.message:err);
+    throw new Error("REGISTRATION_SESSION_FAILED");
+  }
+
+  return{id:String(user.id),status:"pending",activationFee:Number(process.env.ACTIVATION_FEE||process.env.VITE_ACTIVATION_FEE||"15000")};
+});
 
 export const loginUser=createServerFn({method:"POST"}).validator(z.object({username:z.string().trim().toLowerCase().min(3).max(30),password:z.string().min(1)})).handler(async({data})=>{const rows=await supabaseRest<Array<Record<string,unknown>>>("dolaway_users",{query:{select:"id,password_hash,password_salt,status,role",username:`eq.${data.username.toLowerCase()}`,limit:1}});const u=rows[0];if(!u||u.role!=="user"||!(await verifyPassword(data.password,String(u.password_hash),String(u.password_salt))))throw new Error("INVALID_LOGIN");if(["banned","inactive"].includes(String(u.status)))throw new Error(String(u.status).toUpperCase());await setSession({userId:String(u.id),role:"user"});return{status:String(u.status)};});
 
