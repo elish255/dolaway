@@ -170,9 +170,10 @@ alter table public.dolaway_notifications enable row level security;
 -- 2. Replace the email below and run the corresponding UPDATE.
 -- ============================================================
 -- NaraVibe admin:
--- update public.naravibe_users set role='admin', status='active', activated_at=now()
--- where lower(email)=lower('YOUR_NARAVIBE_ADMIN_EMAIL@example.com');
+ update public.naravibe_users set role='admin', status='a
+ ctive', activated_at=now()
+ where lower(email)=lower('yohanaelisha164@gmail.com');
 --
 -- DolaWay admin:
--- update public.dolaway_users set role='admin', status='active', activated_at=now()
--- where lower(email)=lower('YOUR_DOLAWAY_ADMIN_EMAIL@example.com');
+ update public.dolaway_users set role='admin', status='active', activated_at=now()
+where lower(email)=lower('yohanaelisha164@gmail.com');
